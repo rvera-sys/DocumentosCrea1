@@ -1,0 +1,2778 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RE/MAX CREA — Generador de Documentos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
+document.addEventListener('DOMContentLoaded', () => {
+  loadStoredBgImage();
+});
+</script>
+
+<style>
+/* ═══════════════════════════════════════════════════
+   VARIABLES Y RESET
+═══════════════════════════════════════════════════ */
+:root {
+  --red: #CC0000;
+  --red-dark: #aa0000;
+  --red-light: #fff5f5;
+  --red-mid: #fde8e8;
+  --blue: #003087;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --white: #ffffff;
+  --green: #16a34a;
+  --green-light: #f0fdf4;
+  --sidebar-w: 280px;
+  --header-h: 56px;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--gray-100);
+  color: var(--gray-800);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ═══════════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════════ */
+.header {
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  gap: 16px;
+}
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+}
+.hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--gray-600);
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.logo-re { color: var(--gray-800); font-weight: 800; font-size: 18px; letter-spacing: -0.5px; }
+.logo-re span { color: var(--red); }
+.logo-sep { width: 1px; height: 20px; background: var(--gray-200); }
+.logo-crea { font-size: 13px; font-weight: 600; color: var(--gray-600); }
+.header-subtitle { font-size: 12px; color: var(--gray-400); margin-left: auto; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT PRINCIPAL
+═══════════════════════════════════════════════════ */
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════════ */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--white);
+  border-right: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+  height: calc(100vh - var(--header-h));
+  position: sticky;
+  top: var(--header-h);
+}
+.sidebar-header {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.sidebar-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gray-400);
+  margin-bottom: 10px;
+}
+.btn-new-doc {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  background: var(--red);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-new-doc:hover { background: var(--red-dark); }
+.sidebar-search {
+  margin-top: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--gray-800);
+  background: var(--gray-50);
+}
+.sidebar-search:focus { outline: none; border-color: var(--red); background: var(--white); }
+
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+.sidebar-list::-webkit-scrollbar { width: 4px; }
+.sidebar-list::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 2px; }
+
+.sidebar-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--gray-400);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.sidebar-empty .empty-icon { font-size: 28px; margin-bottom: 8px; }
+
+.doc-item {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1.5px solid transparent;
+  margin-bottom: 4px;
+  position: relative;
+}
+.doc-item:hover { background: var(--gray-50); border-color: var(--gray-200); }
+.doc-item.active { background: var(--red-light); border-color: var(--red); }
+.doc-item-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-800);
+  line-height: 1.3;
+  margin-bottom: 2px;
+  padding-right: 20px;
+}
+.doc-item-meta {
+  font-size: 11px;
+  color: var(--gray-400);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.doc-item-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.doc-item-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border: none;
+  background: none;
+  color: var(--gray-300);
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  opacity: 0;
+  transition: all 0.15s;
+}
+.doc-item:hover .doc-item-delete { opacity: 1; color: var(--gray-500); }
+.doc-item-delete:hover { background: var(--red-light); color: var(--red) !important; }
+
+.doc-item-status {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 2px;
+}
+.status-draft { background: var(--gray-300); }
+.status-done { background: var(--green); }
+
+/* ═══════════════════════════════════════════════════
+   CONTENIDO PRINCIPAL
+═══════════════════════════════════════════════════ */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  min-width: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   STEPS
+═══════════════════════════════════════════════════ */
+.steps {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  background: var(--white);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.step-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 16px;
+  font-size: 12px;
+  color: var(--gray-400);
+  border-right: 1px solid var(--gray-200);
+  transition: all 0.2s;
+  cursor: default;
+}
+.step-item:last-child { border-right: none; }
+.step-item.active { color: var(--red); background: var(--red-light); }
+.step-item.done { color: var(--gray-600); background: var(--gray-50); cursor: pointer; }
+.step-item.done:hover { background: var(--gray-100); }
+.step-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+}
+.step-item.done .step-num { background: var(--gray-600); color: white; border-color: var(--gray-600); }
+.step-item.active .step-num { background: var(--red); color: white; border-color: var(--red); }
+.step-label { font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════
+   STEP 1: SELECTOR DE DOCUMENTOS
+═══════════════════════════════════════════════════ */
+.section-title {
+  font-size: 11px; font-weight: 700;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+}
+.cat-tabs {
+  display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.cat-tab {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--gray-200);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  background: var(--white);
+  color: var(--gray-600);
+  transition: all 0.15s;
+}
+.cat-tab:hover { border-color: var(--gray-400); }
+.cat-tab.active { background: var(--gray-800); border-color: var(--gray-800); color: white; }
+.doc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.doc-card {
+  background: var(--white);
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.doc-card:hover { border-color: var(--gray-400); box-shadow: var(--shadow); }
+.doc-card.selected { border-color: var(--red); background: var(--red-light); box-shadow: 0 0 0 3px rgba(204,0,0,0.08); }
+.doc-icon { font-size: 22px; margin-bottom: 8px; }
+.doc-name { font-size: 13px; font-weight: 700; color: var(--gray-800); line-height: 1.3; margin-bottom: 2px; }
+.doc-desc { font-size: 11px; color: var(--gray-400); line-height: 1.3; }
+.doc-badge {
+  display: inline-block;
+  font-size: 10px; font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-top: 6px;
+}
+.badge-compra { background: #dbeafe; color: #1e40af; }
+.badge-alquiler { background: #d1fae5; color: #065f46; }
+.badge-autorizacion { background: #fef3c7; color: #92400e; }
+.badge-gestion { background: #ede9fe; color: #5b21b6; }
+.badge-contrato { background: #fce7f3; color: #9d174d; }
+
+/* ═══════════════════════════════════════════════════
+   STEP 2: FORMULARIO
+═══════════════════════════════════════════════════ */
+.form-page-title {
+  font-size: 18px; font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+}
+.form-page-sub {
+  font-size: 13px; color: var(--gray-500);
+  margin-bottom: 18px;
+}
+.alert-info {
+  padding: 10px 14px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: #1e40af;
+  margin-bottom: 16px;
+}
+.form-card {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+.form-card-title {
+  font-size: 13px; font-weight: 700;
+  color: var(--gray-800);
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.form-grid { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.form-grid.col1 { grid-template-columns: 1fr; }
+.form-grid.col3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 600px) {
+  .form-grid, .form-grid.col3 { grid-template-columns: 1fr; }
+}
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field.full { grid-column: 1 / -1; }
+label { font-size: 12px; font-weight: 600; color: var(--gray-600); }
+label .req { color: var(--red); }
+input[type=text], input[type=date], input[type=number], select, textarea {
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--gray-800);
+  background: var(--white);
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 0.15s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(204,0,0,0.06);
+}
+textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+
+/* ═══════════════════════════════════════════════════
+   STEP 3: EDITOR DE CLÁUSULAS + PREVIEW
+═══════════════════════════════════════════════════ */
+.editor-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 800px) {
+  .editor-layout { grid-template-columns: 1fr; }
+}
+.editor-panel {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.editor-panel-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--gray-100);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.editor-panel-title {
+  font-size: 13px; font-weight: 700;
+  color: var(--gray-800);
+  display: flex; align-items: center; gap: 8px;
+}
+.clause-list {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+.clause-item {
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.clause-item:hover { border-color: var(--gray-400); }
+.clause-item.editing { border-color: var(--red); }
+.clause-item-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  background: var(--gray-50);
+  cursor: pointer;
+}
+.clause-drag-handle {
+  color: var(--gray-300);
+  font-size: 14px;
+  cursor: grab;
+  flex-shrink: 0;
+}
+.clause-number {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--gray-200);
+  color: var(--gray-600);
+  font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.clause-item.editing .clause-number { background: var(--red); color: white; }
+.clause-name {
+  flex: 1;
+  font-size: 12px; font-weight: 600;
+  color: var(--gray-700);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.clause-actions {
+  display: flex; gap: 4px;
+}
+.clause-btn {
+  width: 24px; height: 24px;
+  border: none;
+  background: none;
+  color: var(--gray-400);
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.clause-btn:hover { background: var(--gray-200); color: var(--gray-800); }
+.clause-btn.danger:hover { background: var(--red-light); color: var(--red); }
+.clause-body {
+  padding: 0 12px;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease, padding 0.25s;
+}
+.clause-item.editing .clause-body {
+  max-height: 300px;
+  padding: 10px 12px;
+}
+.clause-textarea {
+  width: 100%;
+  border: 1px solid var(--gray-200);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 12px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.6;
+  color: var(--gray-800);
+}
+.clause-textarea:focus { outline: none; border-color: var(--red); }
+.clause-add-row {
+  padding: 8px 12px;
+  border-top: 1px solid var(--gray-100);
+}
+.btn-add-clause {
+  width: 100%;
+  padding: 8px;
+  border: 1.5px dashed var(--gray-300);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--gray-500);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-add-clause:hover {
+  border-color: var(--red);
+  color: var(--red);
+  background: var(--red-light);
+}
+
+.preview-panel {
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+.preview-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--gray-800);
+  font-family: 'Courier New', Courier, monospace;
+  max-height: 540px;
+  white-space: pre-wrap;
+  background: #fafafa;
+}
+
+/* ═══════════════════════════════════════════════════
+   PDF OUTPUT
+═══════════════════════════════════════════════════ */
+#pdf-source {
+  display: none;
+}
+.pdf-doc {
+  font-family: Arial, sans-serif;
+  font-size: 11pt;
+  line-height: 1.7;
+  color: #000;
+  padding: 0;
+}
+.pdf-header-block {
+  text-align: center;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #CC0000;
+  padding-bottom: 16px;
+}
+.pdf-logo-text {
+  font-size: 20pt;
+  font-weight: 900;
+  color: #CC0000;
+  letter-spacing: -1px;
+}
+.pdf-subtitle {
+  font-size: 9pt;
+  color: #666;
+  margin-top: 2px;
+}
+.pdf-doc-title {
+  font-size: 14pt;
+  font-weight: 700;
+  margin: 16px 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.pdf-body { white-space: pre-wrap; font-size: 10.5pt; line-height: 1.8; }
+.pdf-signatures {
+  margin-top: 48px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+}
+.pdf-sig-block { text-align: center; }
+.pdf-sig-line {
+  border-top: 1px solid #000;
+  padding-top: 6px;
+  margin-top: 48px;
+  font-size: 10pt;
+  color: #333;
+}
+
+/* ═══════════════════════════════════════════════════
+   BOTONES
+═══════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1.5px solid var(--gray-200);
+  background: var(--white);
+  color: var(--gray-700);
+}
+.btn:hover { background: var(--gray-100); }
+.btn.primary { background: var(--red); color: white; border-color: var(--red); }
+.btn.primary:hover { background: var(--red-dark); border-color: var(--red-dark); }
+.btn.primary:disabled { background: var(--gray-200); border-color: var(--gray-200); color: var(--gray-400); cursor: not-allowed; }
+.btn.green { background: var(--green); color: white; border-color: var(--green); }
+.btn.green:hover { background: #15803d; }
+.btn-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════
+   LOADING
+═══════════════════════════════════════════════════ */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: var(--white);
+  border-radius: var(--radius);
+  border: 1px solid var(--gray-200);
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: var(--gray-600); font-weight: 500; }
+
+/* ═══════════════════════════════════════════════════
+   MISC
+═══════════════════════════════════════════════════ */
+.hidden { display: none !important; }
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--gray-800);
+  color: white;
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 999;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.3s ease;
+}
+.toast.success { background: var(--green); }
+.toast.error { background: var(--red); }
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+}
+.modal-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--gray-800); }
+.modal-body { font-size: 13px; color: var(--gray-600); margin-bottom: 20px; line-height: 1.5; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+.success-box {
+  background: var(--green-light);
+  border: 1.5px solid #86efac;
+  border-radius: var(--radius);
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+.success-box .success-icon { font-size: 36px; margin-bottom: 12px; }
+.success-box .success-title { font-size: 16px; font-weight: 700; color: var(--green); margin-bottom: 6px; }
+.success-box .success-sub { font-size: 13px; color: #166534; }
+
+/* ═══════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: var(--header-h);
+    height: calc(100vh - var(--header-h));
+    z-index: 150;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .hamburger { display: flex; }
+  .main-content { padding: 16px; }
+  .step-label { display: none; }
+}
+@media (min-width: 769px) {
+  .hamburger { display: none; }
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 140;
+}
+.sidebar-overlay.show { display: block; }
+
+/* ========== PREVIEW PROFESIONAL + FONDO PDF ========== */
+.preview-paper {
+  background: white;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin: 0;
+  padding: 30px 35px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11pt;
+  line-height: 1.5;
+  color: #000;
+}
+.preview-paper .pdf-header {
+  text-align: center;
+  border-bottom: 2px solid #CC0000;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+.preview-paper .pdf-logo {
+  font-size: 20pt;
+  font-weight: 900;
+  color: #CC0000;
+}
+.preview-paper .pdf-sub {
+  font-size: 9pt;
+  color: #666;
+}
+.preview-paper .pdf-title {
+  font-size: 14pt;
+  font-weight: 700;
+  margin: 12px 0 6px;
+  text-transform: uppercase;
+}
+.preview-paper .clause {
+  margin-bottom: 20px;
+}
+.preview-paper .clause-title {
+  font-weight: 700;
+  font-size: 10.5pt;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+.preview-paper .clause-text {
+  white-space: pre-wrap;
+  font-size: 10pt;
+  line-height: 1.6;
+}
+.pdf-with-bg {
+  background-image: var(--bg-image, none);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+/* ===================================================== */
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════════ -->
+<div class="header">
+  <button class="hamburger" onclick="toggleSidebar()" aria-label="Menú">
+    <span></span><span></span><span></span>
+  </button>
+  <a class="logo" href="#" onclick="goToStart()">
+    <span class="logo-re">RE/<span>MAX</span></span>
+    <span class="logo-sep"></span>
+    <span class="logo-crea">CREA</span>
+  </a>
+  <span class="header-subtitle">Sistema de documentos</span>
+  <div class="header-actions">
+    <button class="btn" style="font-size:12px;padding:7px 12px;" onclick="exportAllDocs()" title="Exportar todos los borradores">
+      💾 Exportar datos
+    </button>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- ═══════════════════════════════════════════════════
+     BODY
+═══════════════════════════════════════════════════ -->
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Mis documentos</div>
+      <button class="btn-new-doc" onclick="startNewDoc()">
+        ＋ Nuevo documento
+      </button>
+      <input type="text" class="sidebar-search" id="sidebar-search" placeholder="🔍 Buscar..." oninput="renderSidebar()">
+    </div>
+    <div class="sidebar-list" id="sidebar-list">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-content" id="main-content">
+
+    <!-- STEPS -->
+    <div class="steps" id="steps-bar">
+      <div class="step-item active" id="step1" onclick="stepClick(1)">
+        <div class="step-num">1</div>
+        <span class="step-label">Tipo de documento</span>
+      </div>
+      <div class="step-item" id="step2" onclick="stepClick(2)">
+        <div class="step-num">2</div>
+        <span class="step-label">Completar datos</span>
+      </div>
+      <div class="step-item" id="step3" onclick="stepClick(3)">
+        <div class="step-num">3</div>
+        <span class="step-label">Revisar y editar</span>
+      </div>
+      <div class="step-item" id="step4" onclick="stepClick(4)">
+        <div class="step-num">4</div>
+        <span class="step-label">Generar PDF</span>
+      </div>
+    </div>
+
+    <!-- VIEW 1: SELECCIÓN -->
+    <div id="view-select">
+      <div class="section-title">Categoría</div>
+      <div class="cat-tabs" id="cat-tabs"></div>
+      <div class="section-title">Elegí el documento</div>
+      <div class="doc-grid" id="doc-grid"></div>
+      <div class="btn-row">
+        <button class="btn primary" id="btn-next1" disabled onclick="goToForm()">Continuar →</button>
+      </div>
+    </div>
+
+    <!-- VIEW 2: FORMULARIO -->
+    <div id="view-form" class="hidden">
+      <div class="form-page-title" id="form-title"></div>
+      <div class="form-page-sub" id="form-sub"></div>
+      <div class="alert-info">
+        Los campos con <strong style="color:var(--red)">*</strong> son obligatorios.
+        El resto los podés dejar en blanco y completar después directamente en el editor de cláusulas.
+      </div>
+      <div id="form-sections"></div>
+      <div class="btn-row">
+        <button class="btn" onclick="goBack(1)">← Volver</button>
+        <button class="btn" onclick="saveDraft()">💾 Guardar borrador</button>
+        <button class="btn primary" onclick="goToEditor()">Revisar y editar →</button>
+      </div>
+    </div>
+
+    <!-- VIEW 3: EDITOR DE CLÁUSULAS -->
+    <div id="view-editor" class="hidden">
+      <div class="form-page-title">✏️ Revisar y editar documento</div>
+      <div class="form-page-sub">Podés modificar, agregar o eliminar cláusulas antes de generar el PDF final.</div>
+
+      
+<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
+  <label style="display:flex;align-items:center;gap:8px;font-size:13px;">
+    <input type="checkbox" id="use-bg-image" onchange="updatePreview()">
+    Usar fondo personalizado en PDF
+  </label>
+
+  <label class="btn" style="cursor:pointer;">
+    🖼 Cargar imagen de fondo
+    <input type="file" accept="image/*" hidden onchange="handleBgImageUpload(event)">
+  </label>
+</div>
+
+<div class="editor-layout">
+        <!-- Panel izquierdo: cláusulas -->
+        <div>
+          <div class="editor-panel">
+            <div class="editor-panel-header">
+              <div class="editor-panel-title">📋 Cláusulas del documento</div>
+              <button class="btn" style="font-size:11px;padding:5px 10px;" onclick="resetClauses()">↺ Restaurar</button>
+            </div>
+            <div class="clause-list" id="clause-list">
+              <!-- populated by JS -->
+            </div>
+            <div class="clause-add-row">
+              <button class="btn-add-clause" onclick="addCustomClause()">
+                ＋ Agregar cláusula personalizada
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel derecho: preview -->
+        <div>
+          <div class="preview-panel">
+            <div class="editor-panel-header">
+              <div class="editor-panel-title">👁 Vista previa</div>
+              <span style="font-size:11px;color:var(--gray-400);">Se actualiza en tiempo real</span>
+            </div>
+            <div class="preview-content" id="preview-content">
+              <!-- populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="goBack(2)">← Volver a datos</button>
+        <button class="btn" onclick="saveDraft()">💾 Guardar</button>
+        <button class="btn primary" onclick="goToPDF()">📄 Generar PDF →</button>
+      </div>
+    </div>
+
+    <!-- VIEW 4: GENERACIÓN PDF -->
+    <div id="view-pdf" class="hidden">
+      <div id="pdf-output">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FUENTE PARA EL PDF (oculta) -->
+<div id="pdf-source"></div>
+
+<!-- MODAL DE CONFIRMACIÓN -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">¿Confirmar?</div>
+    <div class="modal-body" id="modal-body">Esta acción no se puede deshacer.</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn primary" id="modal-confirm">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   DATOS
+════════════════════════════════════════════════════ */
+const CORREDOR = "René Alejandro Vera (CSI 5848 / CPI 6778), en representación de RE/MAX CREA, con domicilio en Concepción Arenal 2712 PB, Palermo, CABA.";
+
+const DOCS = [
+  { id:"r_escritura",      icon:"🏠", name:"Reserva de compra",         desc:"Escritura directa",              cat:"compra" },
+  { id:"r_boleto_esc",     icon:"📋", name:"Reserva de compra",         desc:"Boleto + escritura",             cat:"compra" },
+  { id:"r_hipotecario",    icon:"🏦", name:"Reserva crédito",           desc:"Ad referéndum hipotecario",      cat:"compra" },
+  { id:"r_cesion",         icon:"📝", name:"Reserva cesión",            desc:"Boleto / derechos",              cat:"compra" },
+  { id:"r_emprendimiento", icon:"🏗️", name:"Reserva emprendimiento",    desc:"Unidad en pozo",                 cat:"compra" },
+  { id:"r_loc_caba",       icon:"🔑", name:"Reserva locación CABA",     desc:"Vivienda",                       cat:"alquiler" },
+  { id:"r_loc_pba",        icon:"🏡", name:"Reserva locación PBA",      desc:"Vivienda",                       cat:"alquiler" },
+  { id:"r_loc_comercial",  icon:"🏪", name:"Reserva locación",          desc:"Comercial",                      cat:"alquiler" },
+  { id:"r_temp",           icon:"⏱️", name:"Reserva temporario",        desc:"Alquiler temporario",            cat:"alquiler" },
+  { id:"aut_venta",        icon:"✍️", name:"Autorización de venta",     desc:"Exclusiva",                      cat:"autorizacion" },
+  { id:"aut_venta_renta",  icon:"💰", name:"Autorización venta c/renta",desc:"Inversión",                      cat:"autorizacion" },
+  { id:"aut_cesion",       icon:"🔄", name:"Autorización venta",        desc:"Con cesión de derechos",         cat:"autorizacion" },
+  { id:"aut_emprendimiento",icon:"🏗️",name:"Autorización venta",        desc:"Emprendimiento",                 cat:"autorizacion" },
+  { id:"aut_locacion",     icon:"📋", name:"Autorización de alquiler",  desc:"Exclusiva",                      cat:"autorizacion" },
+  { id:"aut_temp_excl",    icon:"🌟", name:"Autorización temporario",   desc:"Exclusiva",                      cat:"autorizacion" },
+  { id:"aut_temp_noexcl",  icon:"📄", name:"Autorización temporario",   desc:"No exclusiva",                   cat:"autorizacion" },
+  { id:"prorroga",         icon:"⏰", name:"Prórroga de reserva",       desc:"Extensión de plazo",             cat:"gestion" },
+  { id:"reintegro",        icon:"↩️", name:"Reintegro de reserva",      desc:"Devolución de fondos",           cat:"gestion" },
+  { id:"acta_fondos",      icon:"📜", name:"Acta entrega fondos",       desc:"Incumplimiento reservante",      cat:"gestion" },
+  { id:"desistimiento",    icon:"❌", name:"Desistimiento de compra",   desc:"Retiro voluntario",              cat:"gestion" },
+  { id:"cont_locacion_viv",icon:"🏠", name:"Contrato locación",         desc:"Vivienda (CABA)",                cat:"contrato" },
+  { id:"cont_locacion_usd",icon:"💵", name:"Contrato locación",         desc:"Vivienda en dólares",            cat:"contrato" },
+  { id:"cont_locacion_com",icon:"🏪", name:"Contrato locación",         desc:"Comercial",                      cat:"contrato" },
+  { id:"cont_temp_con",    icon:"🌅", name:"Contrato temporario",       desc:"Con paquete de servicios",       cat:"contrato" },
+  { id:"cont_temp_sin",    icon:"🌄", name:"Contrato temporario",       desc:"Sin paquete de servicios",       cat:"contrato" },
+];
+
+const CATS = [
+  { id:"todos", label:"Todos" },
+  { id:"compra", label:"Compra" },
+  { id:"alquiler", label:"Alquiler" },
+  { id:"autorizacion", label:"Autorizaciones" },
+  { id:"gestion", label:"Gestión" },
+  { id:"contrato", label:"Contratos" },
+];
+
+const BADGE_CSS = { compra:"badge-compra", alquiler:"badge-alquiler", autorizacion:"badge-autorizacion", gestion:"badge-gestion", contrato:"badge-contrato" };
+const BADGE_LABEL = { compra:"Compra", alquiler:"Alquiler", autorizacion:"Autorización", gestion:"Gestión", contrato:"Contrato" };
+
+/* ────── FORMULARIOS ────── */
+function camposPersona(prefix, label, reqs=[]) {
+  const r = (f) => reqs.includes(f) ? '<span class="req"> *</span>' : '';
+  return [
+    { id:`${prefix}_nombre`,    label:`Nombre y apellido${r('nombre')}`,   placeholder:"Nombre completo", full:false },
+    { id:`${prefix}_dni`,       label:`DNI / CUIT${r('dni')}`,             placeholder:"00.000.000" },
+    { id:`${prefix}_ecivil`,    label:"Estado civil", type:"select",        options:["","Soltero/a","Casado/a","Divorciado/a","Viudo/a","Unión convivencial"] },
+    { id:`${prefix}_nac`,       label:"Nacionalidad",                       placeholder:"Argentino/a" },
+    { id:`${prefix}_nacimiento`,label:"Fecha de nacimiento", type:"date" },
+    { id:`${prefix}_domicilio`, label:`Domicilio real${r('domicilio')}`,    placeholder:"Calle, número, ciudad", full:true },
+    { id:`${prefix}_email`,     label:"Email",                              placeholder:"email@ejemplo.com" },
+  ];
+}
+
+const FORMS = {
+  r_escritura: {
+    title: "Reserva de compra — escritura directa",
+    sections: [
+      { title:"📍 Inmueble", fields:[
+        { id:"inmueble_dir",       label:"Dirección completa <span class='req'>*</span>", placeholder:"Ej: Gurruchaga 1234, Piso 2°, Dpto. B, CABA", full:true },
+        { id:"inmueble_barrio",    label:"Barrio / Localidad",  placeholder:"Ej: Palermo, CABA" },
+        { id:"inmueble_matricula", label:"Matrícula (FR/FRE)",  placeholder:"Ej: FR-12-34567" },
+      ]},
+      { title:"👤 Comprador (dador de la reserva)", fields: camposPersona("comprador","comprador",["nombre"]) },
+      { title:"🏷️ Vendedor", fields:[
+        { id:"vendedor_nombre",    label:"Nombre y apellido <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"vendedor_dni",       label:"DNI / CUIT",          placeholder:"00.000.000" },
+        { id:"vendedor_domicilio", label:"Domicilio",           placeholder:"Calle, número, ciudad", full:true },
+      ]},
+      { title:"💵 Condiciones económicas", fields:[
+        { id:"precio_letras",  label:"Precio de venta (letras) <span class='req'>*</span>",  placeholder:"Ej: Doscientos mil dólares", full:true },
+        { id:"precio_num",     label:"Precio de venta (números) <span class='req'>*</span>", placeholder:"Ej: USD 200.000" },
+        { id:"moneda",         label:"Moneda", type:"select",  options:["Dólares billete (USD)","Pesos argentinos (ARS)"] },
+        { id:"reserva_letras", label:"Monto reserva (letras) <span class='req'>*</span>",   placeholder:"Ej: Cinco mil dólares", full:true },
+        { id:"reserva_num",    label:"Monto reserva (números) <span class='req'>*</span>",  placeholder:"Ej: USD 5.000" },
+        { id:"fecha_esc",      label:"Fecha tope de escritura", type:"date" },
+        { id:"escribano",      label:"Escribano designado",     placeholder:"Nombre del escribano" },
+      ]},
+      { title:"📊 Comisiones", fields:[
+        { id:"com_captador", label:"Comisión captador (%+IVA)", placeholder:"Ej: 3" },
+        { id:"com_oferente", label:"Comisión oferente (%+IVA)", placeholder:"Ej: 4" },
+      ]},
+      { title:"🧑‍💼 Agente y observaciones", fields:[
+        { id:"agente",  label:"Nombre del agente RE/MAX CREA",                              placeholder:"Nombre completo", full:true },
+        { id:"ad_ref",  label:"Condiciones ad referéndum adicionales (opcional)", type:"textarea", placeholder:"Ej: Sujeto a revisión de títulos...", full:true },
+      ]},
+    ]
+  },
+  r_boleto_esc: {
+    title: "Reserva de compra — boleto + escritura",
+    sections: [
+      { title:"📍 Inmueble", fields:[
+        { id:"inmueble_dir",       label:"Dirección completa <span class='req'>*</span>", placeholder:"Dirección, piso, dpto, barrio, ciudad", full:true },
+        { id:"inmueble_matricula", label:"Matrícula (FR/FRE)", placeholder:"Ej: FR-12-34567" },
+      ]},
+      { title:"👤 Comprador", fields: camposPersona("comprador","comprador",["nombre"]) },
+      { title:"🏷️ Vendedor", fields:[
+        { id:"vendedor_nombre", label:"Nombre y apellido <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"vendedor_dni",    label:"DNI / CUIT", placeholder:"00.000.000" },
+      ]},
+      { title:"💵 Condiciones económicas", fields:[
+        { id:"precio_letras",    label:"Precio total (letras) <span class='req'>*</span>",  placeholder:"Ej: Ciento cincuenta mil dólares", full:true },
+        { id:"precio_num",       label:"Precio total (números) <span class='req'>*</span>", placeholder:"Ej: USD 150.000" },
+        { id:"moneda",           label:"Moneda", type:"select", options:["Dólares billete (USD)","Pesos argentinos (ARS)"] },
+        { id:"reserva_letras",   label:"Monto reserva (letras) <span class='req'>*</span>", placeholder:"Ej: Cinco mil dólares", full:true },
+        { id:"reserva_num",      label:"Monto reserva (números) <span class='req'>*</span>", placeholder:"Ej: USD 5.000" },
+        { id:"pct_boleto",       label:"% al boleto", placeholder:"Ej: 30%" },
+        { id:"pct_escritura",    label:"% a la escritura", placeholder:"Ej: 70%" },
+        { id:"fecha_boleto",     label:"Fecha tope de boleto", type:"date" },
+        { id:"fecha_esc",        label:"Fecha tope de escritura", type:"date" },
+        { id:"escribano",        label:"Escribano designado", placeholder:"Nombre del escribano" },
+      ]},
+      { title:"📊 Comisiones", fields:[
+        { id:"com_captador", label:"Comisión captador (%+IVA)", placeholder:"Ej: 3" },
+        { id:"com_oferente", label:"Comisión oferente (%+IVA)", placeholder:"Ej: 4" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"ad_ref", label:"Condiciones ad referéndum adicionales", type:"textarea", placeholder:"Condiciones adicionales...", full:true },
+      ]},
+    ]
+  },
+  r_hipotecario: {
+    title: "Reserva de crédito hipotecario",
+    sections: [
+      { title:"📍 Inmueble", fields:[
+        { id:"inmueble_dir",       label:"Dirección completa <span class='req'>*</span>", placeholder:"Dirección completa", full:true },
+        { id:"inmueble_matricula", label:"Matrícula (FR/FRE)", placeholder:"Ej: FR-12-34567" },
+      ]},
+      { title:"👤 Comprador", fields: camposPersona("comprador","comprador",["nombre"]) },
+      { title:"🏷️ Vendedor", fields:[
+        { id:"vendedor_nombre", label:"Nombre y apellido <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"vendedor_dni",    label:"DNI / CUIT", placeholder:"00.000.000" },
+      ]},
+      { title:"🏦 Crédito hipotecario", fields:[
+        { id:"banco",             label:"Banco / entidad financiera <span class='req'>*</span>", placeholder:"Ej: Banco Nación, Banco Ciudad", full:true },
+        { id:"monto_credito",     label:"Monto del crédito solicitado <span class='req'>*</span>", placeholder:"Ej: $50.000.000" },
+        { id:"estado_credito",    label:"Estado del crédito", type:"select", options:["Pre-aprobado","En evaluación","Aprobado","Pendiente de documentación"] },
+        { id:"plazo_acreditacion",label:"Plazo estimado de acreditación", placeholder:"Ej: 60 días hábiles" },
+      ]},
+      { title:"💵 Condiciones económicas", fields:[
+        { id:"precio_letras",  label:"Precio total (letras) <span class='req'>*</span>",  placeholder:"Ej: Ciento cincuenta mil dólares", full:true },
+        { id:"precio_num",     label:"Precio total (números) <span class='req'>*</span>", placeholder:"Ej: USD 150.000" },
+        { id:"reserva_num",    label:"Monto reserva <span class='req'>*</span>",          placeholder:"Ej: USD 5.000" },
+        { id:"reserva_letras", label:"Monto reserva (letras)",                            placeholder:"Ej: Cinco mil dólares", full:true },
+        { id:"fecha_esc",      label:"Fecha tope de escritura", type:"date" },
+      ]},
+      { title:"📊 Comisiones", fields:[
+        { id:"com_captador", label:"Comisión captador (%+IVA)", placeholder:"Ej: 3" },
+        { id:"com_oferente", label:"Comisión oferente (%+IVA)", placeholder:"Ej: 4" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"ad_ref", label:"Condiciones adicionales", type:"textarea", placeholder:"Condiciones especiales del crédito...", full:true },
+      ]},
+    ]
+  },
+  aut_venta: {
+    title: "Autorización de venta — exclusiva",
+    sections: [
+      { title:"📋 Lugar y fecha de firma", fields:[
+        { id:"ciudad_firma", label:"Ciudad de firma", placeholder:"Ej: Buenos Aires" },
+        { id:"fecha_firma",  label:"Fecha de firma", type:"date" },
+      ]},
+      { title:"👤 Propietario (autorizante)", fields: camposPersona("prop","prop",["nombre","domicilio"]) },
+      { title:"📍 Inmueble autorizado", fields:[
+        { id:"inmueble_dir",       label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, piso, dpto., barrio, ciudad", full:true },
+        { id:"inmueble_matricula", label:"Matrícula (FR/FRE)", placeholder:"Ej: FR-12-34567" },
+        { id:"inmueble_desc",      label:"Descripción adicional", placeholder:"Superficies, características, etc.", full:true },
+      ]},
+      { title:"💵 Condiciones de la autorización", fields:[
+        { id:"precio_letras", label:"Precio de venta autorizado (letras) <span class='req'>*</span>", placeholder:"Ej: Ciento cincuenta mil dólares", full:true },
+        { id:"precio_num",    label:"Precio de venta autorizado (números) <span class='req'>*</span>", placeholder:"Ej: USD 150.000" },
+        { id:"plazo_dias",    label:"Plazo de exclusividad (días hábiles)", placeholder:"Ej: 90" },
+        { id:"com_pct",       label:"Comisión del corredor (%+IVA)", placeholder:"Ej: 3" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+      ]},
+    ]
+  },
+  aut_locacion: {
+    title: "Autorización de alquiler — exclusiva",
+    sections: [
+      { title:"📋 Lugar y fecha de firma", fields:[
+        { id:"ciudad_firma", label:"Ciudad de firma", placeholder:"Ej: Buenos Aires" },
+        { id:"fecha_firma",  label:"Fecha de firma", type:"date" },
+      ]},
+      { title:"👤 Propietario (autorizante)", fields: camposPersona("prop","prop",["nombre","domicilio"]) },
+      { title:"📍 Inmueble autorizado", fields:[
+        { id:"inmueble_dir",  label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, piso, dpto., ciudad", full:true },
+        { id:"inmueble_desc", label:"Descripción del inmueble", placeholder:"Ambientes, m², características", full:true },
+      ]},
+      { title:"💰 Condiciones de la autorización", fields:[
+        { id:"precio_letras", label:"Alquiler mensual pretendido (letras) <span class='req'>*</span>", placeholder:"Ej: Doscientos cincuenta mil pesos", full:true },
+        { id:"precio_num",    label:"Alquiler mensual pretendido (números) <span class='req'>*</span>", placeholder:"Ej: $250.000" },
+        { id:"plazo_dias",    label:"Plazo de exclusividad (días hábiles)", placeholder:"Ej: 60" },
+        { id:"com_pct",       label:"Comisión del corredor (%+IVA)", placeholder:"Ej: 1 mes" },
+        { id:"garantia",      label:"Garantía requerida", type:"select", options:["Título de propiedad","Seguro de caución","Garantía personal","Recibo de sueldo","A convenir"] },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+      ]},
+    ]
+  },
+  cont_locacion_viv: {
+    title: "Contrato de locación — vivienda (CABA)",
+    sections: [
+      { title:"🏠 Inmueble locado", fields:[
+        { id:"inmueble_dir",    label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, piso, dpto., CABA", full:true },
+        { id:"inmueble_estado", label:"Estado del inmueble al ingreso", placeholder:"Ej: Buen estado de uso y conservación" },
+      ]},
+      { title:"👤 Locador", fields: camposPersona("locador","locador",["nombre"]) },
+      { title:"👤 Locatario", fields: camposPersona("locatario","locatario",["nombre","domicilio"]) },
+      { title:"👤 Garante (si corresponde)", fields:[
+        { id:"garante_nombre", label:"Nombre y apellido del garante", placeholder:"Nombre completo" },
+        { id:"garante_dni",    label:"DNI del garante", placeholder:"00.000.000" },
+        { id:"garante_dom",    label:"Domicilio del garante", placeholder:"Calle, número, ciudad", full:true },
+        { id:"garantia_tipo",  label:"Tipo de garantía", type:"select", options:["Título de propiedad","Seguro de caución","Garantía personal","Sin garante"] },
+      ]},
+      { title:"💰 Condiciones económicas", fields:[
+        { id:"fecha_inicio",           label:"Fecha de inicio <span class='req'>*</span>", type:"date" },
+        { id:"duracion",               label:"Duración", type:"select", options:["2 años","3 años","Otro"] },
+        { id:"alq_primer_mes",         label:"Alquiler primer mes (números) <span class='req'>*</span>", placeholder:"Ej: $300.000" },
+        { id:"alq_primer_mes_letras",  label:"Alquiler primer mes (letras)", placeholder:"Ej: Trescientos mil pesos", full:true },
+        { id:"ajuste_indice",          label:"Índice de ajuste", type:"select", options:["IPC (INDEC) — trimestral","ICL (Ley 27.551) — trimestral","Otro (aclarar)"] },
+        { id:"deposito_meses",         label:"Depósito (meses)", type:"select", options:["1 mes","2 meses"] },
+      ]},
+      { title:"🧑‍💼 Agente y cláusulas", fields:[
+        { id:"agente",               label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"clausulas_adicionales",label:"Cláusulas adicionales (opcional)", type:"textarea", placeholder:"Aclaraciones, obligaciones especiales, etc.", full:true },
+      ]},
+    ]
+  },
+  cont_locacion_usd: {
+    title: "Contrato de locación — vivienda en dólares",
+    sections: [
+      { title:"🏠 Inmueble locado", fields:[
+        { id:"inmueble_dir", label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, piso, dpto., ciudad", full:true },
+      ]},
+      { title:"👤 Locador",    fields: camposPersona("locador","locador",["nombre"]) },
+      { title:"👤 Locatario",  fields: camposPersona("locatario","locatario",["nombre","domicilio"]) },
+      { title:"💰 Condiciones económicas en USD", fields:[
+        { id:"fecha_inicio",       label:"Fecha de inicio <span class='req'>*</span>", type:"date" },
+        { id:"duracion",           label:"Duración", type:"select", options:["2 años","3 años","Otro"] },
+        { id:"alq_usd",            label:"Alquiler mensual en USD <span class='req'>*</span>", placeholder:"Ej: USD 1.000" },
+        { id:"alq_usd_letras",     label:"Alquiler mensual en USD (letras)", placeholder:"Ej: Un mil dólares", full:true },
+        { id:"deposito_meses",     label:"Depósito (meses)", type:"select", options:["1 mes","2 meses"] },
+        { id:"clausula_moneda",    label:"Cláusula de pago en moneda", type:"select", options:["Dólares billete (renuncia art. 765 CCCN)","Pesos al tipo de cambio oficial","Pesos al tipo de cambio libre"] },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente",               label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"clausulas_adicionales",label:"Cláusulas adicionales (opcional)", type:"textarea", placeholder:"Aclaraciones, etc.", full:true },
+      ]},
+    ]
+  },
+  cont_locacion_com: {
+    title: "Contrato de locación comercial",
+    sections: [
+      { title:"🏪 Inmueble comercial", fields:[
+        { id:"inmueble_dir",        label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, ciudad", full:true },
+        { id:"inmueble_superficie", label:"Superficie aprox. (m²)", placeholder:"Ej: 120" },
+        { id:"rubro",               label:"Rubro comercial destinado <span class='req'>*</span>", placeholder:"Ej: Gastronomía, oficina, comercio textil", full:true },
+      ]},
+      { title:"👤 Locador",   fields: camposPersona("locador","locador",["nombre"]) },
+      { title:"👤 Locatario", fields: camposPersona("locatario","locatario",["nombre","domicilio"]) },
+      { title:"💰 Condiciones económicas", fields:[
+        { id:"fecha_inicio", label:"Fecha de inicio <span class='req'>*</span>", type:"date" },
+        { id:"duracion",     label:"Duración (años) <span class='req'>*</span>", placeholder:"Ej: 3" },
+        { id:"alq_pesos",    label:"Alquiler mensual <span class='req'>*</span>", placeholder:"Ej: $500.000" },
+        { id:"ajuste",       label:"Índice de ajuste", placeholder:"Ej: IPC — trimestral" },
+        { id:"deposito",     label:"Depósito de garantía", placeholder:"Ej: 2 meses" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente",               label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"clausulas_adicionales",label:"Cláusulas adicionales (opcional)", type:"textarea", placeholder:"Condiciones especiales, mejoras, etc.", full:true },
+      ]},
+    ]
+  },
+  desistimiento: {
+    title: "Desistimiento de compra",
+    sections: [
+      { title:"📋 Datos de la operación", fields:[
+        { id:"inmueble_dir",     label:"Inmueble <span class='req'>*</span>", placeholder:"Dirección completa", full:true },
+        { id:"comprador_nombre", label:"Nombre del comprador (desistente) <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"comprador_dni",    label:"DNI del comprador <span class='req'>*</span>", placeholder:"00.000.000" },
+        { id:"comprador_dom",    label:"Domicilio del comprador", placeholder:"Calle, número, ciudad", full:true },
+        { id:"vendedor_nombre",  label:"Nombre del vendedor", placeholder:"Nombre completo" },
+        { id:"fecha_reserva",    label:"Fecha de la reserva original", type:"date" },
+        { id:"monto_reserva",    label:"Monto de la reserva entregada", placeholder:"Ej: USD 5.000" },
+      ]},
+      { title:"📝 Motivo y condiciones", fields:[
+        { id:"motivo",         label:"Motivo del desistimiento", type:"textarea", placeholder:"Ej: Motivos personales, cambio de decisión, etc.", full:true },
+        { id:"acuerdo_senial", label:"Tratamiento de la seña", type:"select", options:["La pierde el comprador (seña penitencial)","Acuerdo diferente entre partes (aclarar abajo)"] },
+        { id:"acuerdo_detalle",label:"Detalle del acuerdo (si corresponde)", type:"textarea", placeholder:"Aclaraciones sobre devolución parcial u otro acuerdo", full:true },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+      ]},
+    ]
+  },
+  reintegro: {
+    title: "Reintegro de reserva",
+    sections: [
+      { title:"📋 Datos de la operación", fields:[
+        { id:"inmueble_dir",     label:"Inmueble <span class='req'>*</span>", placeholder:"Dirección completa", full:true },
+        { id:"reservante_nombre",label:"Nombre del dador de la reserva <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"reservante_dni",   label:"DNI del dador <span class='req'>*</span>", placeholder:"00.000.000" },
+        { id:"vendedor_nombre",  label:"Nombre del vendedor (devuelve los fondos) <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"fecha_reserva",    label:"Fecha de la reserva original", type:"date" },
+      ]},
+      { title:"💵 Fondos a reintegrar", fields:[
+        { id:"monto_letras", label:"Monto a reintegrar (letras) <span class='req'>*</span>", placeholder:"Ej: Cinco mil dólares", full:true },
+        { id:"monto_num",    label:"Monto a reintegrar (números) <span class='req'>*</span>", placeholder:"Ej: USD 5.000" },
+        { id:"motivo",       label:"Motivo del reintegro <span class='req'>*</span>", type:"textarea", placeholder:"Ej: Rechazo de la oferta por el vendedor...", full:true },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+      ]},
+    ]
+  },
+  prorroga: {
+    title: "Prórroga de reserva",
+    sections: [
+      { title:"📋 Datos de la reserva original", fields:[
+        { id:"inmueble_dir",     label:"Inmueble <span class='req'>*</span>", placeholder:"Dirección completa", full:true },
+        { id:"comprador_nombre", label:"Nombre del comprador <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"vendedor_nombre",  label:"Nombre del vendedor <span class='req'>*</span>",  placeholder:"Nombre completo" },
+        { id:"fecha_reserva_orig",label:"Fecha de la reserva original", type:"date" },
+        { id:"fecha_vto_orig",    label:"Fecha de vencimiento original", type:"date" },
+      ]},
+      { title:"⏰ Prórroga", fields:[
+        { id:"fecha_vto_nuevo", label:"Nueva fecha de vencimiento <span class='req'>*</span>", type:"date" },
+        { id:"motivo_prorroga", label:"Motivo de la prórroga", type:"textarea", placeholder:"Ej: Demora en la entrega de documentación del vendedor...", full:true },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+      ]},
+    ]
+  },
+  acta_fondos: {
+    title: "Acta de entrega de fondos de reserva",
+    sections: [
+      { title:"📋 Datos de la operación", fields:[
+        { id:"inmueble_dir",          label:"Inmueble <span class='req'>*</span>", placeholder:"Dirección completa", full:true },
+        { id:"reservante_nombre",     label:"Nombre del reservante (desistió) <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"reservante_dni",        label:"DNI del reservante <span class='req'>*</span>", placeholder:"00.000.000" },
+        { id:"reservante_dom",        label:"Domicilio del reservante", placeholder:"Calle, número, ciudad", full:true },
+        { id:"vendedor_nombre",       label:"Nombre del vendedor (receptor de fondos) <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"vendedor_dni",          label:"DNI del vendedor", placeholder:"00.000.000" },
+        { id:"fecha_reserva",         label:"Fecha de la reserva original", type:"date" },
+        { id:"precio_op",             label:"Precio pactado de la operación <span class='req'>*</span>", placeholder:"Ej: USD 190.000" },
+      ]},
+      { title:"💵 Fondos entregados al vendedor", fields:[
+        { id:"monto_letras",           label:"Monto entregado (letras) <span class='req'>*</span>", placeholder:"Ej: Cinco mil dólares", full:true },
+        { id:"monto_num",              label:"Monto entregado (números) <span class='req'>*</span>", placeholder:"Ej: USD 5.000" },
+        { id:"motivo_desistimiento",   label:"Acreditación del desistimiento", type:"textarea", placeholder:"Ej: Dos cartas documento cursadas sin respuesta...", full:true },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+      ]},
+    ]
+  },
+  r_loc_caba: {
+    title: "Reserva de locación CABA — vivienda",
+    sections: [
+      { title:"📍 Inmueble", fields:[
+        { id:"inmueble_dir",  label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, piso, dpto., CABA", full:true },
+        { id:"ambientes",     label:"Ambientes", placeholder:"Ej: 3 ambientes" },
+        { id:"piso_dpto",     label:"Piso / Departamento", placeholder:"Ej: 3° B" },
+      ]},
+      { title:"👤 Locatario (interesado)", fields: camposPersona("locatario","locatario",["nombre"]) },
+      { title:"🏷️ Propietario / Locador", fields:[
+        { id:"locador_nombre", label:"Nombre y apellido <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"locador_dni",    label:"DNI / CUIT", placeholder:"00.000.000" },
+      ]},
+      { title:"💰 Condiciones económicas", fields:[
+        { id:"alq_pretendido",        label:"Alquiler mensual pretendido <span class='req'>*</span>", placeholder:"Ej: $350.000" },
+        { id:"alq_pretendido_letras", label:"Alquiler mensual (letras)", placeholder:"Ej: Trescientos cincuenta mil pesos", full:true },
+        { id:"duracion",              label:"Duración contrato", type:"select", options:["2 años","3 años"] },
+        { id:"fecha_ingreso",         label:"Fecha de ingreso pretendida", type:"date" },
+        { id:"garantia",              label:"Garantía ofrecida", type:"select", options:["Título de propiedad","Seguro de caución","Garantía personal","A convenir"] },
+        { id:"reserva_num",           label:"Monto de reserva entregado", placeholder:"Ej: $100.000" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"ad_ref", label:"Condiciones adicionales", type:"textarea", placeholder:"Condiciones especiales...", full:true },
+      ]},
+    ]
+  },
+  r_loc_pba: {
+    title: "Reserva de locación PBA — vivienda",
+    sections: [
+      { title:"📍 Inmueble", fields:[
+        { id:"inmueble_dir", label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, localidad, Provincia de Buenos Aires", full:true },
+        { id:"partido",      label:"Partido / Municipio", placeholder:"Ej: San Isidro, Tigre, Pilar..." },
+      ]},
+      { title:"👤 Locatario (interesado)", fields: camposPersona("locatario","locatario",["nombre"]) },
+      { title:"🏷️ Propietario / Locador", fields:[
+        { id:"locador_nombre", label:"Nombre y apellido <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"locador_dni",    label:"DNI / CUIT", placeholder:"00.000.000" },
+      ]},
+      { title:"💰 Condiciones económicas", fields:[
+        { id:"alq_pretendido",        label:"Alquiler mensual pretendido <span class='req'>*</span>", placeholder:"Ej: $300.000" },
+        { id:"alq_pretendido_letras", label:"Alquiler mensual (letras)", placeholder:"Ej: Trescientos mil pesos", full:true },
+        { id:"duracion",              label:"Duración contrato", type:"select", options:["2 años","3 años"] },
+        { id:"fecha_ingreso",         label:"Fecha de ingreso pretendida", type:"date" },
+        { id:"garantia",              label:"Garantía ofrecida", type:"select", options:["Título de propiedad","Seguro de caución","Garantía personal","A convenir"] },
+        { id:"reserva_num",           label:"Monto de reserva entregado", placeholder:"Ej: $80.000" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"ad_ref", label:"Condiciones adicionales", type:"textarea", placeholder:"Condiciones especiales...", full:true },
+      ]},
+    ]
+  },
+  r_loc_comercial: {
+    title: "Reserva de locación comercial",
+    sections: [
+      { title:"📍 Inmueble comercial", fields:[
+        { id:"inmueble_dir",        label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, ciudad", full:true },
+        { id:"rubro",               label:"Rubro destinado <span class='req'>*</span>", placeholder:"Ej: Gastronomía, comercio, oficina", full:true },
+        { id:"inmueble_superficie", label:"Superficie aprox. (m²)", placeholder:"Ej: 80" },
+      ]},
+      { title:"👤 Locatario (interesado)", fields: camposPersona("locatario","locatario",["nombre"]) },
+      { title:"🏷️ Propietario / Locador", fields:[
+        { id:"locador_nombre", label:"Nombre y apellido / Razón social <span class='req'>*</span>", placeholder:"Nombre completo", full:true },
+        { id:"locador_dni",    label:"DNI / CUIT", placeholder:"00.000.000" },
+      ]},
+      { title:"💰 Condiciones económicas", fields:[
+        { id:"alq_pretendido",        label:"Alquiler mensual pretendido <span class='req'>*</span>", placeholder:"Ej: $500.000" },
+        { id:"alq_pretendido_letras", label:"Alquiler mensual (letras)", placeholder:"Ej: Quinientos mil pesos", full:true },
+        { id:"duracion",              label:"Duración contrato (años) <span class='req'>*</span>", placeholder:"Ej: 3" },
+        { id:"fecha_ingreso",         label:"Fecha de ingreso pretendida", type:"date" },
+        { id:"reserva_num",           label:"Monto de reserva entregado", placeholder:"Ej: $150.000" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"ad_ref", label:"Condiciones adicionales", type:"textarea", placeholder:"Condiciones especiales...", full:true },
+      ]},
+    ]
+  },
+  r_temp: {
+    title: "Reserva de alquiler temporario",
+    sections: [
+      { title:"📍 Inmueble", fields:[
+        { id:"inmueble_dir", label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, localidad", full:true },
+        { id:"incluye",      label:"El precio incluye", placeholder:"Ej: Expensas, WIFI, agua, etc.", full:true },
+      ]},
+      { title:"👤 Locatario (interesado)", fields: camposPersona("locatario","locatario",["nombre"]) },
+      { title:"🏷️ Propietario / Locador", fields:[
+        { id:"locador_nombre", label:"Nombre y apellido <span class='req'>*</span>", placeholder:"Nombre completo" },
+        { id:"locador_dni",    label:"DNI / CUIT", placeholder:"00.000.000" },
+      ]},
+      { title:"⏱️ Período y condiciones", fields:[
+        { id:"fecha_desde",           label:"Fecha de ingreso <span class='req'>*</span>", type:"date" },
+        { id:"fecha_hasta",           label:"Fecha de egreso <span class='req'>*</span>",  type:"date" },
+        { id:"precio_total",          label:"Precio total del período (números) <span class='req'>*</span>", placeholder:"Ej: $450.000 o USD 1.500" },
+        { id:"precio_total_letras",   label:"Precio total (letras)", placeholder:"Ej: Cuatrocientos cincuenta mil pesos", full:true },
+        { id:"deposito",              label:"Depósito (30% del total)", placeholder:"Ej: $135.000" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"ad_ref", label:"Condiciones adicionales (opcional)", type:"textarea", placeholder:"Condiciones especiales, etc.", full:true },
+      ]},
+    ]
+  },
+  aut_venta_renta: {
+    title: "Autorización de venta con renta",
+    sections: [
+      { title:"📋 Lugar y fecha de firma", fields:[
+        { id:"ciudad_firma", label:"Ciudad de firma", placeholder:"Ej: Buenos Aires" },
+        { id:"fecha_firma",  label:"Fecha de firma", type:"date" },
+      ]},
+      { title:"👤 Propietario (autorizante)", fields: camposPersona("prop","prop",["nombre","domicilio"]) },
+      { title:"📍 Inmueble", fields:[
+        { id:"inmueble_dir",       label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, piso, dpto., ciudad", full:true },
+        { id:"inmueble_matricula", label:"Matrícula (FR/FRE)", placeholder:"Ej: FR-12-34567" },
+        { id:"inquilino_actual",   label:"Inquilino actual (si tiene)", placeholder:"Nombre del inquilino" },
+        { id:"alq_actual",         label:"Alquiler mensual actual", placeholder:"Ej: $500.000 / mes" },
+        { id:"ctto_vto",           label:"Vencimiento contrato locación", type:"date" },
+      ]},
+      { title:"💵 Condiciones de venta", fields:[
+        { id:"precio_letras", label:"Precio de venta (letras) <span class='req'>*</span>", placeholder:"Ej: Doscientos mil dólares", full:true },
+        { id:"precio_num",    label:"Precio de venta (números) <span class='req'>*</span>", placeholder:"Ej: USD 200.000" },
+        { id:"plazo_dias",    label:"Plazo de exclusividad (días hábiles)", placeholder:"Ej: 90" },
+        { id:"com_pct",       label:"Comisión del corredor (%+IVA)", placeholder:"Ej: 3" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+      ]},
+    ]
+  },
+  aut_cesion: {
+    title: "Autorización de venta con cesión de derechos",
+    sections: [
+      { title:"📋 Lugar y fecha de firma", fields:[
+        { id:"ciudad_firma", label:"Ciudad de firma", placeholder:"Ej: Buenos Aires" },
+        { id:"fecha_firma",  label:"Fecha de firma", type:"date" },
+      ]},
+      { title:"👤 Propietario / Cedente", fields: camposPersona("prop","prop",["nombre","domicilio"]) },
+      { title:"📍 Inmueble / Boleto de compraventa", fields:[
+        { id:"inmueble_dir",      label:"Inmueble objeto del boleto <span class='req'>*</span>", placeholder:"Descripción del inmueble o unidad", full:true },
+        { id:"precio_original",   label:"Precio original del boleto", placeholder:"Ej: USD 80.000" },
+        { id:"fecha_boleto_orig", label:"Fecha del boleto original", type:"date" },
+      ]},
+      { title:"💵 Condiciones de la autorización", fields:[
+        { id:"precio_letras", label:"Precio de cesión autorizado (letras) <span class='req'>*</span>", placeholder:"Ej: Noventa mil dólares", full:true },
+        { id:"precio_num",    label:"Precio de cesión autorizado (números) <span class='req'>*</span>", placeholder:"Ej: USD 90.000" },
+        { id:"plazo_dias",    label:"Plazo de exclusividad (días hábiles)", placeholder:"Ej: 90" },
+        { id:"com_pct",       label:"Comisión del corredor (%+IVA)", placeholder:"Ej: 3" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+      ]},
+    ]
+  },
+  aut_emprendimiento: {
+    title: "Autorización de venta de emprendimiento",
+    sections: [
+      { title:"📋 Lugar y fecha de firma", fields:[
+        { id:"ciudad_firma", label:"Ciudad de firma", placeholder:"Ej: Buenos Aires" },
+        { id:"fecha_firma",  label:"Fecha de firma", type:"date" },
+      ]},
+      { title:"🏢 Desarrolladora (autorizante)", fields:[
+        { id:"emp_razons", label:"Razón social <span class='req'>*</span>",     placeholder:"Nombre de la empresa / fideicomiso", full:true },
+        { id:"emp_cuit",   label:"CUIT",                                         placeholder:"00-00000000-0" },
+        { id:"emp_rep",    label:"Representante legal",                          placeholder:"Nombre y cargo" },
+        { id:"emp_dom",    label:"Domicilio",                                    placeholder:"Calle, número, ciudad", full:true },
+      ]},
+      { title:"🏗️ Emprendimiento", fields:[
+        { id:"emp_nombre",   label:"Nombre del emprendimiento <span class='req'>*</span>", placeholder:"Ej: Torre Palermo Soho", full:true },
+        { id:"emp_dir",      label:"Dirección del terreno / emprendimiento",               placeholder:"Dirección, barrio, ciudad", full:true },
+        { id:"emp_unidades", label:"Unidades autorizadas para la venta",                   placeholder:"Ej: Todas las unidades / Planta 3" },
+        { id:"precio_desde", label:"Precio desde (USD)",                                   placeholder:"Ej: USD 80.000" },
+      ]},
+      { title:"💵 Condiciones de la autorización", fields:[
+        { id:"plazo_dias", label:"Plazo de autorización (días hábiles)", placeholder:"Ej: 90" },
+        { id:"com_pct",    label:"Comisión del corredor (%+IVA)",        placeholder:"Ej: 3" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+      ]},
+    ]
+  },
+  aut_temp_excl: {
+    title: "Autorización temporario — exclusiva",
+    sections: [
+      { title:"📋 Lugar y fecha de firma", fields:[
+        { id:"ciudad_firma", label:"Ciudad de firma", placeholder:"Ej: Buenos Aires" },
+        { id:"fecha_firma",  label:"Fecha de firma", type:"date" },
+      ]},
+      { title:"👤 Propietario (autorizante)", fields: camposPersona("prop","prop",["nombre","domicilio"]) },
+      { title:"📍 Inmueble autorizado", fields:[
+        { id:"inmueble_dir",  label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, piso, dpto., localidad", full:true },
+        { id:"inmueble_desc", label:"Descripción y comodidades",                     placeholder:"Ambientes, m², equipamiento", full:true },
+      ]},
+      { title:"💰 Condiciones de la autorización", fields:[
+        { id:"precio_num",   label:"Precio diario / semanal pretendido <span class='req'>*</span>", placeholder:"Ej: USD 120/noche" },
+        { id:"plataformas",  label:"Plataformas de comercialización", type:"select", options:["Airbnb","Booking","Ambas","Otras"] },
+        { id:"plazo_meses",  label:"Plazo de exclusividad (meses)", placeholder:"Ej: 6" },
+        { id:"com_pct",      label:"Comisión del corredor (%)", placeholder:"Ej: 20" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+      ]},
+    ]
+  },
+  aut_temp_noexcl: {
+    title: "Autorización temporario — no exclusiva",
+    sections: [
+      { title:"📋 Lugar y fecha de firma", fields:[
+        { id:"ciudad_firma", label:"Ciudad de firma", placeholder:"Ej: Buenos Aires" },
+        { id:"fecha_firma",  label:"Fecha de firma", type:"date" },
+      ]},
+      { title:"👤 Propietario (autorizante)", fields: camposPersona("prop","prop",["nombre","domicilio"]) },
+      { title:"📍 Inmueble autorizado", fields:[
+        { id:"inmueble_dir",  label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, piso, dpto., localidad", full:true },
+        { id:"inmueble_desc", label:"Descripción y comodidades",                     placeholder:"Ambientes, m², equipamiento", full:true },
+      ]},
+      { title:"💰 Condiciones de la autorización", fields:[
+        { id:"precio_num",  label:"Precio diario / semanal pretendido <span class='req'>*</span>", placeholder:"Ej: $50.000/noche" },
+        { id:"plataformas", label:"Plataformas de comercialización", type:"select", options:["Airbnb","Booking","Ambas","Redes sociales","Otras"] },
+        { id:"plazo_meses", label:"Plazo de autorización (meses)", placeholder:"Ej: 3" },
+        { id:"com_pct",     label:"Comisión del corredor (%)", placeholder:"Ej: 20" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+      ]},
+    ]
+  },
+  r_cesion: {
+    title: "Reserva de cesión — boleto / derechos",
+    sections: [
+      { title:"📍 Inmueble / Boleto cedido", fields:[
+        { id:"inmueble_dir",      label:"Descripción del inmueble / unidad <span class='req'>*</span>", placeholder:"Dirección, torre, piso, unidad", full:true },
+        { id:"precio_original",   label:"Precio original del boleto", placeholder:"Ej: USD 75.000" },
+        { id:"fecha_boleto_orig", label:"Fecha del boleto original", type:"date" },
+      ]},
+      { title:"👤 Cedente (vende los derechos)", fields: camposPersona("cedente","cedente",["nombre"]) },
+      { title:"👤 Cesionario (compra los derechos)", fields: camposPersona("cesionario","cesionario",["nombre"]) },
+      { title:"💵 Condiciones económicas", fields:[
+        { id:"precio_letras",  label:"Precio de la cesión (letras) <span class='req'>*</span>",  placeholder:"Ej: Noventa mil dólares", full:true },
+        { id:"precio_num",     label:"Precio de la cesión (números) <span class='req'>*</span>", placeholder:"Ej: USD 90.000" },
+        { id:"moneda",         label:"Moneda", type:"select", options:["Dólares billete (USD)","Pesos argentinos (ARS)"] },
+        { id:"reserva_letras", label:"Monto reserva (letras) <span class='req'>*</span>",        placeholder:"Ej: Dos mil dólares", full:true },
+        { id:"reserva_num",    label:"Monto reserva (números) <span class='req'>*</span>",       placeholder:"Ej: USD 2.000" },
+        { id:"fecha_firma_ces",label:"Fecha tope para firma de cesión", type:"date" },
+      ]},
+      { title:"📊 Comisiones", fields:[
+        { id:"com_captador", label:"Comisión captador (%+IVA)", placeholder:"Ej: 3" },
+        { id:"com_oferente", label:"Comisión oferente (%+IVA)", placeholder:"Ej: 4" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"ad_ref", label:"Condiciones adicionales",        type:"textarea", placeholder:"Condiciones especiales...", full:true },
+      ]},
+    ]
+  },
+  r_emprendimiento: {
+    title: "Reserva de emprendimiento — unidad en pozo",
+    sections: [
+      { title:"🏗️ Emprendimiento y unidad", fields:[
+        { id:"emp_nombre",  label:"Nombre del emprendimiento <span class='req'>*</span>", placeholder:"Ej: Torre Palermo Soho", full:true },
+        { id:"emp_dir",     label:"Dirección del emprendimiento",                          placeholder:"Calle, barrio, ciudad", full:true },
+        { id:"unidad",      label:"Unidad / Número de piso / Torre <span class='req'>*</span>", placeholder:"Ej: Piso 5, Unidad A, Torre 1", full:true },
+        { id:"superficie",  label:"Superficie (m²)", placeholder:"Ej: 65 m² + 10 m² balcón" },
+        { id:"entrega_est", label:"Entrega estimada", placeholder:"Ej: Diciembre 2026" },
+      ]},
+      { title:"🏢 Desarrolladora", fields:[
+        { id:"dev_nombre", label:"Razón social desarrolladora <span class='req'>*</span>", placeholder:"Nombre de la empresa", full:true },
+        { id:"dev_cuit",   label:"CUIT", placeholder:"00-00000000-0" },
+      ]},
+      { title:"👤 Comprador / Inversor", fields: camposPersona("comprador","comprador",["nombre"]) },
+      { title:"💵 Condiciones económicas", fields:[
+        { id:"precio_letras",  label:"Precio total (letras) <span class='req'>*</span>",   placeholder:"Ej: Ciento veinte mil dólares", full:true },
+        { id:"precio_num",     label:"Precio total (números) <span class='req'>*</span>",  placeholder:"Ej: USD 120.000" },
+        { id:"reserva_letras", label:"Monto reserva (letras) <span class='req'>*</span>",  placeholder:"Ej: Cinco mil dólares", full:true },
+        { id:"reserva_num",    label:"Monto reserva (números) <span class='req'>*</span>", placeholder:"Ej: USD 5.000" },
+        { id:"plan_pago",      label:"Plan de pago", type:"textarea",                      placeholder:"Ej: 20% al boleto, 30% en cuotas, 50% a la escritura", full:true },
+        { id:"moneda",         label:"Moneda", type:"select", options:["Dólares billete (USD)","Pesos argentinos (ARS)"] },
+      ]},
+      { title:"📊 Comisiones", fields:[
+        { id:"com_captador", label:"Comisión captador (%+IVA)", placeholder:"Ej: 3" },
+        { id:"com_oferente", label:"Comisión oferente (%+IVA)", placeholder:"Ej: 4" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente", label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"ad_ref", label:"Condiciones adicionales",        type:"textarea", placeholder:"Condiciones especiales...", full:true },
+      ]},
+    ]
+  },
+  cont_temp_con: {
+    title: "Contrato temporario — con paquete de servicios",
+    sections: [
+      { title:"🏠 Inmueble temporario", fields:[
+        { id:"inmueble_dir",      label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, localidad, Provincia", full:true },
+        { id:"incluye_servicios", label:"Paquete de servicios incluidos", placeholder:"Ej: Expensas, WIFI, agua, luz, gas", full:true },
+      ]},
+      { title:"👤 Locador",   fields: camposPersona("locador","locador",["nombre"]) },
+      { title:"👤 Locatario", fields: camposPersona("locatario","locatario",["nombre","domicilio"]) },
+      { title:"⏱️ Período y condiciones", fields:[
+        { id:"fecha_desde",         label:"Fecha de ingreso <span class='req'>*</span>", type:"date" },
+        { id:"fecha_hasta",         label:"Fecha de egreso <span class='req'>*</span>",  type:"date" },
+        { id:"precio_total",        label:"Precio total del período <span class='req'>*</span>", placeholder:"Ej: $900.000 (incluye todos los servicios)" },
+        { id:"precio_total_letras", label:"Precio total (letras)", placeholder:"Ej: Novecientos mil pesos", full:true },
+        { id:"deposito_pct",        label:"Depósito de garantía (30% del total)", placeholder:"Ej: $270.000" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente",               label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"clausulas_adicionales",label:"Cláusulas adicionales (opcional)", type:"textarea", placeholder:"Inventario, restricciones, etc.", full:true },
+      ]},
+    ]
+  },
+  cont_temp_sin: {
+    title: "Contrato temporario — sin paquete de servicios",
+    sections: [
+      { title:"🏠 Inmueble temporario", fields:[
+        { id:"inmueble_dir",        label:"Dirección completa <span class='req'>*</span>", placeholder:"Calle, número, localidad, Provincia", full:true },
+        { id:"expensas_servicios",  label:"Servicios/expensas a cargo del locatario",      placeholder:"Ej: Luz, gas, expensas, internet", full:true },
+      ]},
+      { title:"👤 Locador",   fields: camposPersona("locador","locador",["nombre"]) },
+      { title:"👤 Locatario", fields: camposPersona("locatario","locatario",["nombre","domicilio"]) },
+      { title:"⏱️ Período y condiciones", fields:[
+        { id:"fecha_desde",         label:"Fecha de ingreso <span class='req'>*</span>", type:"date" },
+        { id:"fecha_hasta",         label:"Fecha de egreso <span class='req'>*</span>",  type:"date" },
+        { id:"precio_total",        label:"Precio total del período <span class='req'>*</span>", placeholder:"Ej: $600.000" },
+        { id:"precio_total_letras", label:"Precio total (letras)", placeholder:"Ej: Seiscientos mil pesos", full:true },
+        { id:"deposito_pct",        label:"Depósito de garantía (30% del total)", placeholder:"Ej: $180.000" },
+      ]},
+      { title:"🧑‍💼 Agente", fields:[
+        { id:"agente",               label:"Nombre del agente RE/MAX CREA", placeholder:"Nombre completo", full:true },
+        { id:"clausulas_adicionales",label:"Cláusulas adicionales (opcional)", type:"textarea", placeholder:"Inventario, restricciones, etc.", full:true },
+      ]},
+    ]
+  },
+};
+
+
+/* ════════════════════════════════════════════════════
+   GENERACIÓN DE CLÁUSULAS — PLANTILLAS COMPLETAS (25 docs)
+════════════════════════════════════════════════════ */
+function buildClauses(docId, data) {
+  const f  = (key, fallback="—") => (data[key]||'').trim() || fallback;
+  const fv = (key) => (data[key]||'').trim();
+  const fecha_hoy = new Date().toLocaleDateString('es-AR', {day:'numeric',month:'long',year:'numeric'});
+
+  const fFecha = (key, fallback='—') => {
+    const v = fv(key);
+    if(!v) return fallback;
+    const d = new Date(v + 'T12:00:00');
+    return isNaN(d) ? v : d.toLocaleDateString('es-AR', {day:'numeric', month:'long', year:'numeric'});
+  };
+
+  const calcHon = (pctKey, defaultPct) => {
+    const pct = parseFloat(fv(pctKey) || defaultPct);
+    const rawP = fv('precio_num') || fv('alq_primer_mes') || fv('alq_usd') || '';
+    const match = rawP.replace(/\./g,'').match(/[\d]+/);
+    if(match && pct) {
+      const base = parseInt(match[0]);
+      const monto = Math.round(base * pct / 100);
+      const mon = rawP.includes('USD') ? 'USD' : '$';
+      return pct + '% + IVA (aprox. ' + mon + ' ' + monto.toLocaleString('es-AR') + ' + IVA)';
+    }
+    return pct + '% + IVA';
+  };
+
+  const inmDir = (dirKey='inmueble_dir', barrioKey='inmueble_barrio') => {
+    const dir = fv(dirKey);
+    const barrio = fv(barrioKey);
+    if(!barrio || dir.toLowerCase().includes(barrio.toLowerCase())) return dir || '—';
+    return dir + ', ' + barrio;
+  };
+
+  const adRef = (key='ad_ref') => fv(key) ? '\n\nCONDICIONES ADICIONALES: ' + fv(key) : '';
+
+  const clauseBuilders = {
+
+    r_escritura: () => [
+      { name:"Encabezado", text:"OFERTA — RESERVA DE COMPRA (Escritura directa)\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Dador de la reserva — Comprador", text:"DADOR DE LA RESERVA (COMPRADOR): " + f('comprador_nombre') + ", DNI/CUIT " + f('comprador_dni') + ", estado civil " + f('comprador_ecivil') + ", nacionalidad " + f('comprador_nac') + ", fecha de nacimiento " + fFecha('comprador_nacimiento') + ", con domicilio real en " + f('comprador_domicilio') + ", correo electrónico " + f('comprador_email') + "." },
+      { name:"Vendedor", text:"VENDEDOR: " + f('vendedor_nombre') + ", DNI/CUIT " + f('vendedor_dni') + ", con domicilio en " + f('vendedor_domicilio') + "." },
+      { name:"Inmueble", text:"INMUEBLE OBJETO DE LA RESERVA: " + inmDir() + ". Matrícula Catastral/Registral: " + f('inmueble_matricula') + "." },
+      { name:"Precio de venta", text:"PRECIO DE VENTA: La suma de " + f('precio_letras') + " (" + f('precio_num') + "), en " + f('moneda','Dólares billete (USD)') + "." },
+      { name:"Monto de reserva", text:"MONTO DE RESERVA: La suma de " + f('reserva_letras') + " (" + f('reserva_num') + "), que el dador entrega en este acto al corredor inmobiliario en concepto de reserva, la que se imputará al precio de compraventa una vez aceptada la oferta." },
+      { name:"Saldo del precio — Escritura", text:"SALDO DEL PRECIO — ESCRITURA: El saldo del precio se abonará al momento del otorgamiento de la escritura traslativa de dominio ante el escribano designado: " + f('escribano','a designar por las partes') + ", cuya fecha tope es el día " + fFecha('fecha_esc') + "." },
+      { name:"Posesión e inhabilitaciones", text:"POSESIÓN: El vendedor declara bajo juramento que el inmueble se encuentra libre de ocupantes, inhibiciones, gravámenes, deudas de expensas, impuestos y servicios al momento de la escritura. El incumplimiento dará derecho al comprador a rescindir la operación con devolución íntegra de los montos abonados más daños y perjuicios." },
+      { name:"Estado parcelario", text:"ESTADO PARCELARIO: El vendedor se compromete a gestionar el certificado de estado parcelario en un plazo no mayor a 3 (tres) días hábiles contados desde la aceptación de la presente oferta." },
+      { name:"Ad referéndum — Aceptación del vendedor", text:"AD REFERÉNDUM — ACEPTACIÓN: La presente oferta queda sujeta a la conformidad expresa del VENDEDOR dentro del plazo de 3 (tres) días corridos desde su firma. Si el vendedor no prestare conformidad, la reserva será restituida al dador sin penalidad alguna para ninguna de las partes." + adRef() },
+      { name:"Seña penitencial (Art. 1059 CCCN)", text:"SEÑA PENITENCIAL (Art. 1059 CCCN): Una vez que el vendedor preste su conformidad, la suma entregada en concepto de reserva se convierte en seña penitencial. En consecuencia:\na) Si el COMPRADOR desistiere, perderá la suma entregada en concepto de seña.\nb) Si el VENDEDOR desistiere, deberá restituir al comprador el doble de la suma recibida." },
+      { name:"Renuncia Art. 765 CCCN — Moneda extranjera", text:"RENUNCIA ART. 765 CCCN: Las partes renuncian expresamente y de común acuerdo a la facultad establecida en el artículo 765 del Código Civil y Comercial, acordando que todas las obligaciones pactadas en dólares estadounidenses serán cumplidas en dicha moneda extranjera (billetes), no pudiendo el deudor cancelar en moneda de curso legal." },
+      { name:"Honorarios — Comprador (oferente)", text:"HONORARIOS DEL COMPRADOR: El dador de la reserva abonará al corredor inmobiliario el " + calcHon('com_oferente','4') + " calculado sobre el precio total de venta, pagaderos al momento del otorgamiento de la escritura traslativa de dominio (fecha tope: " + fFecha('fecha_esc') + ")." },
+      { name:"Honorarios — Vendedor (captador)", text:"HONORARIOS DEL VENDEDOR: El vendedor abonará al corredor inmobiliario el " + calcHon('com_captador','3') + " calculado sobre el precio total de venta, pagaderos al momento del otorgamiento de la escritura traslativa de dominio." },
+      { name:"Protección de honorarios", text:"PROTECCIÓN DE HONORARIOS: En caso de que la operación se perfeccione dentro de los 90 (noventa) días corridos posteriores al vencimiento de la presente, con persona que hubiera sido presentada por el corredor con anterioridad al vencimiento, igualmente se deberán los honorarios pactados." },
+      { name:"Incumplimiento", text:"INCUMPLIMIENTO: En caso de incumplimiento por cualquiera de las partes, el incumplidor deberá abonar los honorarios de ambas partes al corredor inmobiliario, sin perjuicio de las demás acciones legales que correspondan." },
+      { name:"Jurisdicción y competencia", text:"JURISDICCIÓN: Para todos los efectos legales emergentes del presente instrumento, las partes se someten a la jurisdicción de los Tribunales Ordinarios en lo Civil de la Ciudad Autónoma de Buenos Aires, renunciando a cualquier otro fuero o jurisdicción." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad con todos y cada uno de los términos del presente instrumento, se firman dos (2) ejemplares de un mismo tenor y a un solo efecto, en el lugar y fecha indicados al inicio.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    r_boleto_esc: () => [
+      { name:"Encabezado", text:"OFERTA — RESERVA DE COMPRA (Boleto de compraventa + Escritura)\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Comprador", text:"DADOR DE LA RESERVA (COMPRADOR): " + f('comprador_nombre') + ", DNI/CUIT " + f('comprador_dni') + ", estado civil " + f('comprador_ecivil') + ", nacionalidad " + f('comprador_nac') + ", fecha de nacimiento " + fFecha('comprador_nacimiento') + ", con domicilio real en " + f('comprador_domicilio') + ", correo electrónico " + f('comprador_email') + "." },
+      { name:"Vendedor", text:"VENDEDOR: " + f('vendedor_nombre') + ", DNI/CUIT " + f('vendedor_dni') + "." },
+      { name:"Inmueble", text:"INMUEBLE OBJETO DE LA RESERVA: " + f('inmueble_dir') + ". Matrícula: " + f('inmueble_matricula') + "." },
+      { name:"Precio total", text:"PRECIO TOTAL DE VENTA: " + f('precio_letras') + " (" + f('precio_num') + "), en " + f('moneda','Dólares billete (USD)') + "." },
+      { name:"Monto de reserva", text:"MONTO DE RESERVA: " + f('reserva_letras') + " (" + f('reserva_num') + "), entregados en este acto al corredor, a cuenta del precio de venta." },
+      { name:"Forma de pago — Boleto y escritura", text:"FORMA DE PAGO:\n• Al momento del boleto de compraventa: " + f('pct_boleto','30%') + " del precio total, con fecha tope el " + fFecha('fecha_boleto') + ".\n• Al momento de la escritura traslativa de dominio: " + f('pct_escritura','70%') + " del precio total, con fecha tope el " + f('fecha_esc') + ".\nEscribano designado: " + f('escribano','a designar por las partes') + "." },
+      { name:"Ad referéndum — Aceptación", text:"AD REFERÉNDUM: La presente oferta queda sujeta a la conformidad del VENDEDOR dentro de los 3 (tres) días corridos. De no mediar aceptación, la reserva será restituida íntegramente al comprador." + adRef() },
+      { name:"Seña penitencial", text:"SEÑA PENITENCIAL (Art. 1059 CCCN): Prestada la conformidad del vendedor, la reserva se convierte en seña penitencial. Si el comprador desiste, pierde la suma entregada. Si el vendedor desiste, restituye el doble." },
+      { name:"Renuncia Art. 765 CCCN", text:"RENUNCIA ART. 765 CCCN: Las partes pactan que todas las obligaciones en moneda extranjera se cumplirán en dólares billete, renunciando expresamente a cancelar en moneda de curso legal." },
+      { name:"Posesión", text:"POSESIÓN: El vendedor declara que el inmueble está libre de ocupantes, inhibiciones, gravámenes y deudas al momento del boleto y de la escritura." },
+      { name:"Estado parcelario", text:"ESTADO PARCELARIO: El vendedor gestionará el certificado de estado parcelario dentro de los 3 días hábiles de aceptada la oferta." },
+      { name:"Honorarios", text:"HONORARIOS:\n• Comprador: " + f('com_oferente','4') + "% + IVA sobre el precio total, pagaderos a la escritura.\n• Vendedor: " + f('com_captador','3') + "% + IVA sobre el precio total, pagaderos a la escritura." },
+      { name:"Protección de honorarios e incumplimiento", text:"PROTECCIÓN DE HONORARIOS: Si la operación se concreta en los 90 días posteriores al vencimiento con persona presentada por el corredor, se deberán los honorarios. INCUMPLIMIENTO: El incumplidor pagará los honorarios de ambas partes." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la Ciudad Autónoma de Buenos Aires." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    r_hipotecario: () => [
+      { name:"Encabezado", text:"OFERTA — RESERVA DE COMPRA (Ad referéndum crédito hipotecario)\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Comprador", text:"DADOR DE LA RESERVA (COMPRADOR): " + f('comprador_nombre') + ", DNI/CUIT " + f('comprador_dni') + ", estado civil " + f('comprador_ecivil') + ", nacionalidad " + f('comprador_nac') + ", domicilio real " + f('comprador_domicilio') + ", email " + f('comprador_email') + "." },
+      { name:"Vendedor", text:"VENDEDOR: " + f('vendedor_nombre') + ", DNI/CUIT " + f('vendedor_dni') + "." },
+      { name:"Inmueble", text:"INMUEBLE OBJETO DE LA RESERVA: " + f('inmueble_dir') + ". Matrícula: " + f('inmueble_matricula') + "." },
+      { name:"Precio total", text:"PRECIO TOTAL DE VENTA: " + f('precio_letras') + " (" + f('precio_num') + ")." },
+      { name:"Monto de reserva", text:"MONTO DE RESERVA: " + f('reserva_letras') + " (" + f('reserva_num') + "), entregados al corredor en este acto, a cuenta del precio de venta." },
+      { name:"Condición suspensiva — Crédito hipotecario", text:"CONDICIÓN SUSPENSIVA — CRÉDITO HIPOTECARIO: La presente reserva queda sujeta, como condición suspensiva, a la obtención y acreditación del crédito hipotecario solicitado por el comprador ante " + f('banco') + ", por un monto de " + f('monto_credito') + " (estado actual: " + f('estado_credito') + "). Plazo estimado de acreditación: " + f('plazo_acreditacion') + ".\n\nSi dentro del plazo pactado el crédito no fuese otorgado por causas ajenas a la voluntad del comprador, la reserva será devuelta íntegramente sin penalidad alguna." },
+      { name:"Saldo — Escritura", text:"SALDO DEL PRECIO — ESCRITURA: El saldo será abonado al momento de la escritura traslativa de dominio, cuya fecha tope es el " + f('fecha_esc') + ", incluyendo el producido del crédito hipotecario aprobado." },
+      { name:"Ad referéndum — Vendedor", text:"AD REFERÉNDUM: La presente oferta queda además sujeta a la aceptación del VENDEDOR en un plazo de 3 (tres) días corridos." + adRef() },
+      { name:"Seña penitencial", text:"SEÑA PENITENCIAL (Art. 1059 CCCN): Una vez aprobado el crédito y aceptada la oferta por el vendedor, la reserva se convierte en seña penitencial conforme al Art. 1059 CCCN." },
+      { name:"Renuncia Art. 765 CCCN", text:"RENUNCIA ART. 765 CCCN: En caso de que el precio o parte de él esté pactado en dólares, las partes renuncian a la opción del Art. 765 CCCN y acuerdan pago en moneda extranjera billete." },
+      { name:"Posesión y estado del inmueble", text:"POSESIÓN: El vendedor garantiza que el inmueble se entregará libre de ocupantes, gravámenes e inhibiciones al momento de la escritura." },
+      { name:"Honorarios", text:"HONORARIOS:\n• Comprador: " + f('com_oferente','4') + "% + IVA sobre el precio total, pagaderos a la escritura.\n• Vendedor: " + f('com_captador','3') + "% + IVA sobre el precio total, pagaderos a la escritura." },
+      { name:"Incumplimiento y protección de honorarios", text:"INCUMPLIMIENTO: El incumplidor abonará los honorarios de ambas partes. La protección de honorarios rige por 90 días corridos post vencimiento." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la Ciudad Autónoma de Buenos Aires." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    r_cesion: () => [
+      { name:"Encabezado", text:"OFERTA — RESERVA DE CESIÓN DE DERECHOS DE BOLETO DE COMPRAVENTA\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Cedente", text:"CEDENTE (vende los derechos): " + f('cedente_nombre') + ", DNI/CUIT " + f('cedente_dni') + ", estado civil " + f('cedente_ecivil') + ", domicilio " + f('cedente_domicilio') + ", email " + f('cedente_email') + "." },
+      { name:"Cesionario", text:"CESIONARIO (adquiere los derechos): " + f('cesionario_nombre') + ", DNI/CUIT " + f('cesionario_dni') + ", estado civil " + f('cesionario_ecivil') + ", domicilio " + f('cesionario_domicilio') + ", email " + f('cesionario_email') + "." },
+      { name:"Inmueble — Boleto original", text:"OBJETO DE LA CESIÓN: Los derechos emergentes del boleto de compraventa sobre el inmueble ubicado en " + f('inmueble_dir') + ", cuyo precio original fue de " + f('precio_original') + ", de fecha " + fFecha('fecha_boleto_orig') + "." },
+      { name:"Precio de la cesión", text:"PRECIO DE CESIÓN: " + f('precio_letras') + " (" + f('precio_num') + "), en " + f('moneda','Dólares billete (USD)') + "." },
+      { name:"Monto de reserva", text:"RESERVA: " + f('reserva_letras') + " (" + f('reserva_num') + "), entregados al corredor en este acto a cuenta del precio de cesión." },
+      { name:"Fecha tope firma cesión", text:"FECHA TOPE PARA FIRMA: Las partes se obligan a suscribir el instrumento definitivo de cesión de derechos con fecha tope el " + fFecha('fecha_firma_ces') + "." },
+      { name:"Ad referéndum", text:"AD REFERÉNDUM: La presente oferta queda sujeta a la conformidad del cedente en el plazo de 3 días corridos." + adRef() },
+      { name:"Seña penitencial", text:"SEÑA PENITENCIAL (Art. 1059 CCCN): Prestada la conformidad del cedente, la reserva se convierte en seña penitencial. Si el cesionario desiste, pierde la suma. Si el cedente desiste, restituye el doble." },
+      { name:"Renuncia Art. 765 CCCN", text:"RENUNCIA ART. 765 CCCN: Las partes pactan que las obligaciones en moneda extranjera se cumplirán en dólares billete, sin opción a pago en pesos." },
+      { name:"Honorarios", text:"HONORARIOS:\n• Cesionario: " + f('com_oferente','4') + "% + IVA sobre el precio de cesión, pagaderos a la firma del instrumento definitivo.\n• Cedente: " + f('com_captador','3') + "% + IVA sobre el precio de cesión, pagaderos a la firma del instrumento definitivo." },
+      { name:"Incumplimiento y protección", text:"INCUMPLIMIENTO: El incumplidor pagará honorarios de ambas partes. Protección de honorarios: 90 días post vencimiento." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    r_emprendimiento: () => [
+      { name:"Encabezado", text:"OFERTA — RESERVA DE COMPRA DE UNIDAD EN POZO / EMPRENDIMIENTO\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Comprador / Inversor", text:"DADOR DE LA RESERVA (COMPRADOR / INVERSOR): " + f('comprador_nombre') + ", DNI/CUIT " + f('comprador_dni') + ", estado civil " + f('comprador_ecivil') + ", domicilio real " + f('comprador_domicilio') + ", email " + f('comprador_email') + "." },
+      { name:"Desarrolladora", text:"DESARROLLADORA / FIDUCIARIA: " + f('dev_nombre') + ", CUIT " + f('dev_cuit') + "." },
+      { name:"Emprendimiento y unidad", text:"EMPRENDIMIENTO: " + f('emp_nombre') + ", ubicado en " + f('emp_dir') + ".\nUNIDAD RESERVADA: " + f('unidad') + ", superficie aproximada: " + f('superficie') + ".\nFecha estimada de entrega: " + f('entrega_est') + "." },
+      { name:"Precio total", text:"PRECIO TOTAL DE LA UNIDAD: " + f('precio_letras') + " (" + f('precio_num') + "), en " + f('moneda','Dólares billete (USD)') + "." },
+      { name:"Monto de reserva", text:"MONTO DE RESERVA: " + f('reserva_letras') + " (" + f('reserva_num') + "), entregados al corredor en este acto." },
+      { name:"Plan de pago", text:"PLAN DE PAGO:\n" + f('plan_pago','A convenir entre las partes.') },
+      { name:"Ad referéndum — Desarrolladora", text:"AD REFERÉNDUM: La presente reserva queda sujeta a la aceptación de la desarrolladora en el plazo de 3 (tres) días hábiles." + adRef() },
+      { name:"Seña penitencial", text:"SEÑA PENITENCIAL (Art. 1059 CCCN): Prestada la conformidad de la desarrolladora, la reserva se convierte en seña penitencial. Si el comprador desiste, pierde la suma. Si la desarrolladora desiste, restituye el doble." },
+      { name:"Renuncia Art. 765 CCCN", text:"RENUNCIA ART. 765 CCCN: Las obligaciones en dólares se pagarán en dicha moneda extranjera billete, sin opción a cancelación en moneda de curso legal." },
+      { name:"Honorarios", text:"HONORARIOS:\n• Comprador: " + f('com_oferente','4') + "% + IVA sobre el precio total de la unidad.\n• Desarrolladora: " + f('com_captador','3') + "% + IVA sobre el precio total de la unidad." },
+      { name:"Incumplimiento y protección", text:"INCUMPLIMIENTO: El incumplidor abona honorarios de ambas partes. Protección de honorarios por 90 días post vencimiento." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    r_loc_caba: () => [
+      { name:"Encabezado", text:"OFERTA — RESERVA DE LOCACIÓN (Vivienda — CABA)\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Locatario interesado", text:"LOCATARIO INTERESADO: " + f('locatario_nombre') + ", DNI/CUIT " + f('locatario_dni') + ", estado civil " + f('locatario_ecivil') + ", domicilio actual " + f('locatario_domicilio') + ", email " + f('locatario_email') + "." },
+      { name:"Propietario / Locador", text:"PROPIETARIO / LOCADOR: " + f('locador_nombre') + ", DNI/CUIT " + f('locador_dni') + "." },
+      { name:"Inmueble pretendido", text:"INMUEBLE PRETENDIDO: " + f('inmueble_dir') + (fv('ambientes') ? ' — ' + fv('ambientes') : '') + (fv('piso_dpto') ? ', ' + fv('piso_dpto') : '') + ", Ciudad Autónoma de Buenos Aires." },
+      { name:"Condiciones económicas pretendidas", text:"ALQUILER MENSUAL PRETENDIDO: " + f('alq_pretendido') + " (" + f('alq_pretendido_letras','en letras a completar') + ").\nDuración del contrato: " + f('duracion','2 años') + " (conforme Ley 27.551).\nFecha de ingreso pretendida: " + fFecha('fecha_ingreso') + "." },
+      { name:"Garantía ofrecida", text:"GARANTÍA OFRECIDA: " + f('garantia','A convenir') + "." },
+      { name:"Monto de reserva", text:"MONTO DE RESERVA: " + f('reserva_num','—') + ", entregados al corredor en este acto, a cuenta del primer alquiler y/o depósito." },
+      { name:"Ad referéndum — Propietario", text:"AD REFERÉNDUM: La presente oferta queda sujeta a la aceptación del propietario en el plazo de 3 (tres) días corridos." + adRef() },
+      { name:"Condición de la reserva", text:"CONDICIÓN DE LA RESERVA: De aceptarse la oferta, se procederá a la suscripción del contrato de locación conforme la Ley 27.551 y el CCCN. De no aceptarse, la reserva será restituida íntegramente al locatario." },
+      { name:"Honorarios del corredor", text:"HONORARIOS DEL CORREDOR: El propietario/locador abonará los honorarios correspondientes al corredor conforme a la Ley 5859 (CABA) y normativa vigente. Los honorarios NO podrán trasladarse al locatario." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la Ciudad Autónoma de Buenos Aires." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    r_loc_pba: () => [
+      { name:"Encabezado", text:"OFERTA — RESERVA DE LOCACIÓN (Vivienda — Provincia de Buenos Aires)\n\nEn la fecha " + fecha_hoy + "." },
+      { name:"Locatario interesado", text:"LOCATARIO INTERESADO: " + f('locatario_nombre') + ", DNI/CUIT " + f('locatario_dni') + ", estado civil " + f('locatario_ecivil') + ", domicilio actual " + f('locatario_domicilio') + ", email " + f('locatario_email') + "." },
+      { name:"Propietario / Locador", text:"PROPIETARIO / LOCADOR: " + f('locador_nombre') + ", DNI/CUIT " + f('locador_dni') + "." },
+      { name:"Inmueble pretendido", text:"INMUEBLE PRETENDIDO: " + f('inmueble_dir') + (fv('partido') ? ', Partido de ' + fv('partido') : '') + ", Provincia de Buenos Aires." },
+      { name:"Condiciones económicas pretendidas", text:"ALQUILER MENSUAL PRETENDIDO: " + f('alq_pretendido') + " (" + f('alq_pretendido_letras','en letras a completar') + ").\nDuración del contrato: " + f('duracion','2 años') + " (conf. Ley 27.551).\nFecha de ingreso pretendida: " + fFecha('fecha_ingreso') + "." },
+      { name:"Garantía ofrecida", text:"GARANTÍA OFRECIDA: " + f('garantia','A convenir') + "." },
+      { name:"Monto de reserva", text:"MONTO DE RESERVA: " + f('reserva_num','—') + ", entregados al corredor en este acto." },
+      { name:"Ad referéndum — Propietario", text:"AD REFERÉNDUM: La presente oferta queda sujeta a la aceptación del propietario en el plazo de 3 (tres) días corridos." + adRef() },
+      { name:"Condición de la reserva", text:"CONDICIÓN: De aceptarse la oferta, se suscribirá el contrato de locación conforme la Ley 27.551. De no aceptarse, la reserva será restituida íntegramente." },
+      { name:"Honorarios del corredor", text:"HONORARIOS DEL CORREDOR: Se regirán por la normativa vigente en la Provincia de Buenos Aires. Los honorarios del corredor no podrán ser trasladados al locatario de vivienda." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios del Departamento Judicial correspondiente al domicilio del inmueble, Provincia de Buenos Aires." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    r_loc_comercial: () => [
+      { name:"Encabezado", text:"OFERTA — RESERVA DE LOCACIÓN COMERCIAL\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Locatario interesado", text:"LOCATARIO INTERESADO: " + f('locatario_nombre') + ", DNI/CUIT " + f('locatario_dni') + ", domicilio " + f('locatario_domicilio') + ", email " + f('locatario_email') + "." },
+      { name:"Propietario / Locador", text:"PROPIETARIO / LOCADOR: " + f('locador_nombre') + ", DNI/CUIT " + f('locador_dni') + "." },
+      { name:"Inmueble pretendido", text:"INMUEBLE PRETENDIDO: " + f('inmueble_dir') + (fv('inmueble_superficie') ? ', superficie aprox. ' + fv('inmueble_superficie') + ' m²' : '') + ".\nRubro comercial destinado: " + f('rubro') + "." },
+      { name:"Condiciones económicas pretendidas", text:"ALQUILER MENSUAL PRETENDIDO: " + f('alq_pretendido') + " (" + f('alq_pretendido_letras','en letras a completar') + ").\nDuración del contrato: " + f('duracion','3') + " años.\nFecha de ingreso pretendida: " + fFecha('fecha_ingreso') + "." },
+      { name:"Monto de reserva", text:"MONTO DE RESERVA: " + f('reserva_num','—') + ", entregados al corredor en este acto." },
+      { name:"Ad referéndum — Propietario", text:"AD REFERÉNDUM: La presente oferta queda sujeta a la aceptación del propietario en el plazo de 3 (tres) días hábiles." + adRef() },
+      { name:"Condición de la reserva", text:"CONDICIÓN: De aceptarse la oferta, se procederá a la suscripción del contrato de locación comercial. De no aceptarse, la reserva será restituida íntegramente." },
+      { name:"Honorarios del corredor", text:"HONORARIOS DEL CORREDOR: El locatario abonará al corredor el equivalente a 1 (un) mes de alquiler + IVA, pagaderos a la firma del contrato. El locador abonará según acuerdo previo con el corredor." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la Ciudad Autónoma de Buenos Aires." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    r_temp: () => [
+      { name:"Encabezado", text:"OFERTA — RESERVA DE ALQUILER TEMPORARIO\n\nEn la fecha " + fecha_hoy + "." },
+      { name:"Locatario interesado", text:"LOCATARIO INTERESADO: " + f('locatario_nombre') + ", DNI/CUIT " + f('locatario_dni') + ", domicilio " + f('locatario_domicilio') + ", email " + f('locatario_email') + "." },
+      { name:"Propietario / Locador", text:"PROPIETARIO / LOCADOR: " + f('locador_nombre') + ", DNI/CUIT " + f('locador_dni') + "." },
+      { name:"Inmueble pretendido", text:"INMUEBLE: " + f('inmueble_dir') + ".\nEl precio incluye: " + f('incluye') + "." },
+      { name:"Período y precio", text:"PERÍODO: desde el " + fFecha('fecha_desde') + " hasta el " + fFecha('fecha_hasta') + ".\nPRECIO TOTAL DEL PERÍODO: " + f('precio_total') + " (" + f('precio_total_letras','en letras a completar') + ")." },
+      { name:"Monto de reserva y depósito", text:"RESERVA ENTREGADA: a cuenta del total, entregada al corredor en este acto.\nDEPÓSITO DE GARANTÍA: " + f('deposito','30% del precio total') + ", pagadero a la firma del contrato." },
+      { name:"Ad referéndum — Propietario", text:"AD REFERÉNDUM: La presente oferta queda sujeta a la conformidad del propietario dentro de las 48 hs." + adRef() },
+      { name:"Condición de la reserva", text:"CONDICIÓN: De aceptarse la oferta, las partes suscribirán el contrato de locación temporaria. De no aceptarse, la reserva será restituida íntegramente." },
+      { name:"Honorarios del corredor", text:"HONORARIOS DEL CORREDOR: Conforme a lo pactado con el propietario y normativa vigente." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la Ciudad Autónoma de Buenos Aires." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    aut_venta: () => [
+      { name:"Encabezado", text:"AUTORIZACIÓN DE VENTA — EXCLUSIVA\n\nEn " + f('ciudad_firma','Ciudad de Buenos Aires') + ", a los " + f('fecha_firma', fecha_hoy) + "." },
+      { name:"Autorizante — Propietario", text:"AUTORIZANTE (PROPIETARIO): " + f('prop_nombre') + ", DNI/CUIT " + f('prop_dni') + ", estado civil " + f('prop_ecivil') + ", nacionalidad " + f('prop_nac') + ", con domicilio real en " + f('prop_domicilio') + ", email " + f('prop_email') + "." },
+      { name:"Inmueble autorizado", text:"INMUEBLE OBJETO DE LA AUTORIZACIÓN: " + f('inmueble_dir') + ". Matrícula: " + f('inmueble_matricula') + ".\n" + (fv('inmueble_desc') ? 'Descripción: ' + fv('inmueble_desc') : '') },
+      { name:"Precio de venta autorizado", text:"PRECIO DE VENTA AUTORIZADO: " + f('precio_letras') + " (" + f('precio_num') + "), en Dólares estadounidenses billete." },
+      { name:"Exclusividad", text:"EXCLUSIVIDAD: El autorizante otorga al corredor inmobiliario autorización EXCLUSIVA para la venta del inmueble por el plazo de " + f('plazo_dias','90') + " días hábiles contados desde la firma del presente, comprometiéndose a no ceder la gestión a otro corredor ni realizar ventas directas durante dicho período sin notificación previa al corredor." },
+      { name:"Comisión del corredor", text:"COMISIÓN DEL CORREDOR: El autorizante se obliga a abonar al corredor inmobiliario el " + f('com_pct','3') + "% + IVA calculado sobre el precio efectivo de venta, pagaderos al momento del otorgamiento de la escritura traslativa de dominio." },
+      { name:"Obligaciones del corredor", text:"OBLIGACIONES DEL CORREDOR: RE/MAX CREA se obliga a difundir el inmueble en los medios habituales de comercialización, presentar ofertas al propietario y asesorar en todas las etapas de la operación." },
+      { name:"Protección de honorarios", text:"PROTECCIÓN DE HONORARIOS: Si la operación se concretare con persona presentada por el corredor dentro de los 90 días posteriores al vencimiento de la autorización, igualmente se deberán los honorarios pactados." },
+      { name:"Documentación", text:"DOCUMENTACIÓN: El autorizante se compromete a entregar al corredor copia del título de propiedad, planos, boletas de servicios y demás documentación necesaria dentro de los 5 días hábiles de firmada la presente." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la Ciudad Autónoma de Buenos Aires." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares de un mismo tenor.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    aut_venta_renta: () => [
+      { name:"Encabezado", text:"AUTORIZACIÓN DE VENTA CON RENTA — EXCLUSIVA\n\nEn " + f('ciudad_firma','Ciudad de Buenos Aires') + ", a los " + f('fecha_firma', fecha_hoy) + "." },
+      { name:"Autorizante — Propietario", text:"AUTORIZANTE (PROPIETARIO): " + f('prop_nombre') + ", DNI/CUIT " + f('prop_dni') + ", estado civil " + f('prop_ecivil') + ", domicilio " + f('prop_domicilio') + ", email " + f('prop_email') + "." },
+      { name:"Inmueble autorizado — Situación locativa", text:"INMUEBLE: " + f('inmueble_dir') + ". Matrícula: " + f('inmueble_matricula') + ".\nSITUACIÓN LOCATIVA: El inmueble se encuentra " + (fv('inquilino_actual') ? 'actualmente alquilado al Sr./Sra. ' + fv('inquilino_actual') + ', con un alquiler mensual de ' + fv('alq_actual') + ', con vencimiento del contrato el ' + fv('ctto_vto') : 'libre de ocupantes') + "." },
+      { name:"Precio de venta autorizado", text:"PRECIO DE VENTA AUTORIZADO: " + f('precio_letras') + " (" + f('precio_num') + "), en Dólares estadounidenses billete." },
+      { name:"Exclusividad", text:"EXCLUSIVIDAD: Se otorga al corredor autorización exclusiva para la venta por " + f('plazo_dias','90') + " días hábiles. El autorizante no podrá encargar la venta a otro corredor ni vender directamente durante este plazo." },
+      { name:"Comisión del corredor", text:"COMISIÓN DEL CORREDOR: " + f('com_pct','3') + "% + IVA sobre el precio efectivo de venta, pagaderos a la escritura." },
+      { name:"Condición de la locación", text:"CONDICIÓN DE LA LOCACIÓN: La venta se realizará con el inmueble " + (fv('inquilino_actual') ? 'en las condiciones locativas actuales, respetando los derechos del locatario vigente conforme al CCCN' : 'libre de ocupantes') + ". El comprador acepta las condiciones al momento de la oferta." },
+      { name:"Protección de honorarios", text:"PROTECCIÓN DE HONORARIOS: Rige por 90 días corridos post vencimiento con personas presentadas por el corredor." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    aut_cesion: () => [
+      { name:"Encabezado", text:"AUTORIZACIÓN DE VENTA CON CESIÓN DE DERECHOS\n\nEn " + f('ciudad_firma','Ciudad de Buenos Aires') + ", a los " + f('fecha_firma', fecha_hoy) + "." },
+      { name:"Autorizante — Cedente", text:"AUTORIZANTE / CEDENTE: " + f('prop_nombre') + ", DNI/CUIT " + f('prop_dni') + ", estado civil " + f('prop_ecivil') + ", domicilio " + f('prop_domicilio') + ", email " + f('prop_email') + "." },
+      { name:"Objeto — Boleto de compraventa", text:"OBJETO DE LA AUTORIZACIÓN: Los derechos emergentes del boleto de compraventa sobre el inmueble ubicado en " + f('inmueble_dir') + ", de fecha " + fFecha('fecha_boleto_orig') + ", cuyo precio original fue de " + f('precio_original') + "." },
+      { name:"Precio de cesión autorizado", text:"PRECIO DE CESIÓN AUTORIZADO: " + f('precio_letras') + " (" + f('precio_num') + "), en Dólares estadounidenses billete." },
+      { name:"Exclusividad", text:"EXCLUSIVIDAD: Se otorga al corredor autorización exclusiva para la gestión de la cesión de derechos por " + f('plazo_dias','90') + " días hábiles." },
+      { name:"Comisión del corredor", text:"COMISIÓN DEL CORREDOR: " + f('com_pct','3') + "% + IVA sobre el precio de cesión efectivo, pagaderos a la firma del instrumento de cesión." },
+      { name:"Protección de honorarios", text:"PROTECCIÓN DE HONORARIOS: Rige por 90 días corridos post vencimiento." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    aut_emprendimiento: () => [
+      { name:"Encabezado", text:"AUTORIZACIÓN DE VENTA — EMPRENDIMIENTO\n\nEn " + f('ciudad_firma','Ciudad de Buenos Aires') + ", a los " + f('fecha_firma', fecha_hoy) + "." },
+      { name:"Autorizante — Desarrolladora", text:"AUTORIZANTE / DESARROLLADORA: " + f('emp_razons') + ", CUIT " + f('emp_cuit') + ", representada por " + f('emp_rep') + ", con domicilio en " + f('emp_dom') + "." },
+      { name:"Emprendimiento autorizado", text:"EMPRENDIMIENTO: " + f('emp_nombre') + ", ubicado en " + f('emp_dir') + ".\nUnidades autorizadas: " + f('emp_unidades','Todas las unidades disponibles') + ".\nPrecio desde: " + f('precio_desde') + "." },
+      { name:"Plazo de autorización", text:"PLAZO DE AUTORIZACIÓN: " + f('plazo_dias','90') + " días hábiles desde la firma del presente." },
+      { name:"Comisión del corredor", text:"COMISIÓN DEL CORREDOR: " + f('com_pct','3') + "% + IVA sobre el precio de venta de cada unidad, pagaderos al momento de la suscripción del instrumento de venta o boleto de cada unidad." },
+      { name:"Obligaciones del corredor", text:"OBLIGACIONES DEL CORREDOR: RE/MAX CREA se obliga a difundir el emprendimiento en sus canales habituales, presentar compradores y asesorar en el proceso de venta de cada unidad." },
+      { name:"Materiales de venta", text:"MATERIALES: La desarrolladora proveerá al corredor planos, renders, ficha técnica y material de marketing actualizado para la comercialización." },
+      { name:"Protección de honorarios", text:"PROTECCIÓN DE HONORARIOS: Rige por 90 días corridos post vencimiento para operaciones con compradores presentados durante la vigencia." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    aut_locacion: () => [
+      { name:"Encabezado", text:"AUTORIZACIÓN DE ALQUILER — EXCLUSIVA\n\nEn " + f('ciudad_firma','Ciudad de Buenos Aires') + ", a los " + f('fecha_firma', fecha_hoy) + "." },
+      { name:"Autorizante — Propietario", text:"AUTORIZANTE (PROPIETARIO): " + f('prop_nombre') + ", DNI/CUIT " + f('prop_dni') + ", estado civil " + f('prop_ecivil') + ", domicilio " + f('prop_domicilio') + ", email " + f('prop_email') + "." },
+      { name:"Inmueble autorizado", text:"INMUEBLE: " + f('inmueble_dir') + ".\n" + (fv('inmueble_desc') ? 'Descripción: ' + fv('inmueble_desc') : '') },
+      { name:"Alquiler pretendido", text:"ALQUILER MENSUAL PRETENDIDO: " + f('precio_letras') + " (" + f('precio_num') + ")." },
+      { name:"Exclusividad y plazo", text:"EXCLUSIVIDAD: Se otorga al corredor autorización exclusiva para la gestión del alquiler por " + f('plazo_dias','60') + " días hábiles. El propietario no podrá encargar el alquiler a otro corredor ni alquilar directamente sin notificación previa." },
+      { name:"Garantía requerida", text:"GARANTÍA REQUERIDA DEL LOCATARIO: " + f('garantia','A convenir') + "." },
+      { name:"Comisión del corredor", text:"COMISIÓN DEL CORREDOR: " + f('com_pct','1 mes de alquiler') + " + IVA, conforme normativa vigente (Ley 5859 CABA). Los honorarios son a cargo del propietario y NO pueden ser trasladados al locatario de vivienda." },
+      { name:"Obligaciones del corredor", text:"OBLIGACIONES DEL CORREDOR: RE/MAX CREA se obliga a publicitar el inmueble, presentar interesados y asesorar en la selección del locatario y suscripción del contrato." },
+      { name:"Protección de honorarios", text:"PROTECCIÓN DE HONORARIOS: Rige por 60 días corridos post vencimiento para locatarios presentados por el corredor." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    aut_temp_excl: () => [
+      { name:"Encabezado", text:"AUTORIZACIÓN DE ALQUILER TEMPORARIO — EXCLUSIVA\n\nEn " + f('ciudad_firma','Ciudad de Buenos Aires') + ", a los " + f('fecha_firma', fecha_hoy) + "." },
+      { name:"Autorizante — Propietario", text:"AUTORIZANTE (PROPIETARIO): " + f('prop_nombre') + ", DNI/CUIT " + f('prop_dni') + ", domicilio " + f('prop_domicilio') + ", email " + f('prop_email') + "." },
+      { name:"Inmueble autorizado", text:"INMUEBLE: " + f('inmueble_dir') + ".\n" + (fv('inmueble_desc') ? 'Descripción y comodidades: ' + fv('inmueble_desc') : '') },
+      { name:"Precio y plataformas", text:"PRECIO PRETENDIDO: " + f('precio_num') + " por noche/semana.\nPLATAFORMAS DE COMERCIALIZACIÓN: " + f('plataformas','Airbnb / Booking') + "." },
+      { name:"Exclusividad y plazo", text:"EXCLUSIVIDAD: El autorizante otorga exclusividad al corredor para la gestión del alquiler temporario por " + f('plazo_meses','6') + " meses. No podrá encargarse la gestión a otro corredor ni publicar directamente sin comunicarlo al corredor." },
+      { name:"Comisión del corredor", text:"COMISIÓN DEL CORREDOR: " + f('com_pct','20') + "% sobre el precio bruto de cada reserva efectivamente cobrada, conforme liquidación mensual." },
+      { name:"Obligaciones del corredor", text:"OBLIGACIONES DEL CORREDOR: Publicar el inmueble, gestionar reservas, check-in/check-out y liquidar mensualmente al propietario." },
+      { name:"Protección de honorarios", text:"PROTECCIÓN DE HONORARIOS: Rige por 30 días corridos post vencimiento para huéspedes captados durante la vigencia." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    aut_temp_noexcl: () => [
+      { name:"Encabezado", text:"AUTORIZACIÓN DE ALQUILER TEMPORARIO — NO EXCLUSIVA\n\nEn " + f('ciudad_firma','Ciudad de Buenos Aires') + ", a los " + f('fecha_firma', fecha_hoy) + "." },
+      { name:"Autorizante — Propietario", text:"AUTORIZANTE (PROPIETARIO): " + f('prop_nombre') + ", DNI/CUIT " + f('prop_dni') + ", domicilio " + f('prop_domicilio') + ", email " + f('prop_email') + "." },
+      { name:"Inmueble autorizado", text:"INMUEBLE: " + f('inmueble_dir') + ".\n" + (fv('inmueble_desc') ? 'Descripción: ' + fv('inmueble_desc') : '') },
+      { name:"Precio y plataformas", text:"PRECIO PRETENDIDO: " + f('precio_num') + " por noche/semana.\nPLATAFORMAS: " + f('plataformas','A convenir') + "." },
+      { name:"Autorización no exclusiva y plazo", text:"AUTORIZACIÓN NO EXCLUSIVA: El autorizante otorga al corredor autorización NO EXCLUSIVA para la gestión del alquiler temporario por " + f('plazo_meses','3') + " meses, pudiendo el propietario encargar la gestión simultáneamente a otros corredores o plataformas." },
+      { name:"Comisión del corredor", text:"COMISIÓN DEL CORREDOR: " + f('com_pct','20') + "% sobre el precio bruto de cada reserva efectivamente gestionada y cobrada a través de RE/MAX CREA." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    prorroga: () => [
+      { name:"Encabezado", text:"PRÓRROGA DE RESERVA\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Partes", text:"COMPRADOR: " + f('comprador_nombre') + ".\nVENDEDOR: " + f('vendedor_nombre') + ".\nCORREDOR INMOBILIARIO: " + CORREDOR },
+      { name:"Datos de la reserva original", text:"RESERVA ORIGINAL: Suscripta el " + fFecha('fecha_reserva_orig') + " sobre el inmueble ubicado en " + f('inmueble_dir') + ", con vencimiento original el " + fFecha('fecha_vto_orig') + "." },
+      { name:"Prórroga acordada", text:"PRÓRROGA: Las partes acuerdan de común acuerdo prorrogar el plazo de la reserva hasta el día " + fFecha('fecha_vto_nuevo') + ", en las mismas condiciones y términos pactados originalmente.\n\nMotivo de la prórroga: " + f('motivo_prorroga','Acuerdo mutuo entre las partes') + "." },
+      { name:"Vigencia de condiciones", text:"VIGENCIA: Todas las cláusulas y condiciones del instrumento de reserva original permanecen vigentes e inalteradas, salvo la modificación del plazo aquí acordada." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    reintegro: () => [
+      { name:"Encabezado", text:"REINTEGRO DE RESERVA\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Partes", text:"DADOR DE LA RESERVA: " + f('reservante_nombre') + ", DNI " + f('reservante_dni') + ".\nVENDEDOR (reintegra los fondos): " + f('vendedor_nombre') + ".\nCORREDOR INMOBILIARIO: " + CORREDOR },
+      { name:"Datos de la reserva original", text:"RESERVA ORIGINAL: Suscripta el " + fFecha('fecha_reserva') + " sobre el inmueble ubicado en " + f('inmueble_dir') + "." },
+      { name:"Motivo del reintegro", text:"MOTIVO DEL REINTEGRO: " + f('motivo') + "." },
+      { name:"Fondos a reintegrar", text:"FONDOS A REINTEGRAR: La suma de " + f('monto_letras') + " (" + f('monto_num') + "), que el vendedor/corredor restituye íntegramente al dador de la reserva, sin deducción alguna, quedando ambas partes liberadas de toda obligación emergente del instrumento de reserva original." },
+      { name:"Recibo de conformidad", text:"RECIBO: El dador de la reserva declara recibir en este acto la suma indicada a su entera conformidad, renunciando a cualquier reclamo posterior relacionado con la reserva original." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    acta_fondos: () => [
+      { name:"Encabezado", text:"ACTA DE ENTREGA DE FONDOS DE RESERVA\n(Por incumplimiento del reservante)\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Partes", text:"RESERVANTE (incumplidor): " + f('reservante_nombre') + ", DNI " + f('reservante_dni') + ", con domicilio en " + f('reservante_dom') + ".\nVENDEDOR (receptor de fondos): " + f('vendedor_nombre') + ", DNI " + f('vendedor_dni') + ".\nCORREDOR INMOBILIARIO: " + CORREDOR },
+      { name:"Antecedentes", text:"ANTECEDENTES: Con fecha " + fFecha('fecha_reserva') + " se suscribió una reserva de compra sobre el inmueble ubicado en " + f('inmueble_dir') + ", por un precio pactado de " + f('precio_op') + ". La reserva fue aceptada por el vendedor. Con posterioridad, el reservante incurrió en incumplimiento.\n\nAcreditación del incumplimiento: " + f('motivo_desistimiento') + "." },
+      { name:"Entrega de fondos al vendedor", text:"ENTREGA DE FONDOS: En virtud del carácter de seña penitencial que revisten los fondos de reserva (Art. 1059 CCCN), y habiendo quedado acreditado el incumplimiento del reservante, el corredor inmobiliario hace entrega al vendedor de la suma de " + f('monto_letras') + " (" + f('monto_num') + "), correspondiente a los fondos de reserva oportunamente recibidos." },
+      { name:"Honorarios pendientes", text:"HONORARIOS PENDIENTES: El reservante incumplidor adeuda al corredor inmobiliario los honorarios de ambas partes conforme a la cláusula de incumplimiento de la reserva original." },
+      { name:"Recibo y conformidad del vendedor", text:"RECIBO: El vendedor declara recibir los fondos indicados a su entera conformidad, sin perjuicio de las acciones legales que pudiera ejercer contra el reservante incumplidor." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    desistimiento: () => [
+      { name:"Encabezado", text:"DESISTIMIENTO DE COMPRA\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Partes", text:"COMPRADOR (desistente): " + f('comprador_nombre') + ", DNI " + f('comprador_dni') + ", con domicilio en " + f('comprador_dom') + ".\nVENDEDOR: " + f('vendedor_nombre') + ".\nCORREDOR INMOBILIARIO: " + CORREDOR },
+      { name:"Antecedentes", text:"ANTECEDENTES: Con fecha " + fFecha('fecha_reserva') + " se suscribió una reserva de compra sobre el inmueble ubicado en " + f('inmueble_dir') + ", por la suma de " + f('monto_reserva') + " en concepto de reserva/seña." },
+      { name:"Desistimiento", text:"DESISTIMIENTO: El comprador manifiesta su voluntad de desistir de la operación de compra del inmueble mencionado.\nMotivo: " + f('motivo','Motivos personales') + "." },
+      { name:"Tratamiento de la seña", text:"TRATAMIENTO DE LA SEÑA: " + f('acuerdo_senial','La pierde el comprador (seña penitencial)') + " conforme al Art. 1059 CCCN." + (fv('acuerdo_detalle') ? '\n\nDetalle del acuerdo: ' + fv('acuerdo_detalle') : '') },
+      { name:"Honorarios del corredor", text:"HONORARIOS: El comprador desistente abona los honorarios de ambas partes al corredor conforme a la cláusula de incumplimiento de la reserva original." },
+      { name:"Liberación de obligaciones", text:"LIBERACIÓN: Cumplidas las condiciones precedentes, ambas partes quedan liberadas de sus obligaciones recíprocas emergentes de la reserva original." },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    cont_locacion_viv: () => [
+      { name:"Encabezado", text:"CONTRATO DE LOCACIÓN DE INMUEBLE PARA VIVIENDA\n(Ciudad Autónoma de Buenos Aires — Ley 27.551)\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Locador", text:"LOCADOR: " + f('locador_nombre') + ", DNI/CUIT " + f('locador_dni') + ", estado civil " + f('locador_ecivil') + ", domicilio real " + f('locador_domicilio') + ", email " + f('locador_email') + "." },
+      { name:"Locatario", text:"LOCATARIO: " + f('locatario_nombre') + ", DNI/CUIT " + f('locatario_dni') + ", estado civil " + f('locatario_ecivil') + ", domicilio constituido en el inmueble objeto de este contrato, email " + f('locatario_email') + "." },
+      { name:"Garante", text:"GARANTE: " + f('garante_nombre','Sin garante') + ", DNI " + f('garante_dni','—') + ", domicilio " + f('garante_dom','—') + ". Tipo de garantía: " + f('garantia_tipo','Sin garante') + "." },
+      { name:"Objeto — Inmueble locado", text:"OBJETO: El locador cede al locatario el uso y goce del inmueble ubicado en " + f('inmueble_dir') + ", Ciudad Autónoma de Buenos Aires, en " + f('inmueble_estado','buen estado de uso y conservación') + ", destinado exclusivamente a vivienda del locatario y su grupo familiar." },
+      { name:"Plazo y fechas", text:"PLAZO: El plazo de la locación es de " + f('duracion','2 años') + ", contados desde el " + fFecha('fecha_inicio') + ", venciendo en consecuencia el contrato en igual fecha pasados los " + f('duracion','2 años') + ". Conforme Art. 1198 CCCN, el plazo mínimo de las locaciones de inmuebles habitacionales es de dos años." },
+      { name:"Canon locativo — Primer mes", text:"CANON LOCATIVO: El locatario abonará en concepto de alquiler mensual la suma de " + f('alq_primer_mes') + " (" + f('alq_primer_mes_letras','en letras a completar') + ") por el primer mes. Los cánones sucesivos se ajustarán conforme al índice pactado." },
+      { name:"Índice de ajuste", text:"ÍNDICE DE AJUSTE: " + f('ajuste_indice','IPC (INDEC) — trimestral') + ". El ajuste se aplicará cada tres meses sobre el canon del período anterior, conforme la Ley 27.551." },
+      { name:"Depósito de garantía", text:"DEPÓSITO DE GARANTÍA: El locatario entrega al locador la suma equivalente a " + f('deposito_meses','1 mes') + " de alquiler en concepto de depósito de garantía, que será restituido al vencimiento o rescisión del contrato, descontando eventuales daños y deudas. Conforme Art. 1196 CCCN, el depósito no podrá exceder el equivalente a un mes de alquiler por cada año de contrato." },
+      { name:"Pago — Lugar y forma", text:"PAGO: El canon locativo se abonará por mes adelantado, dentro de los primeros 5 días hábiles de cada mes. El locatario podrá efectuar el pago por transferencia bancaria, depósito o en el domicilio del locador o del corredor." },
+      { name:"Destino y obligaciones del locatario", text:"DESTINO Y OBLIGACIONES: El locatario se obliga a: a) usar el inmueble exclusivamente como vivienda; b) conservarlo en buen estado; c) no realizar obras ni modificaciones sin autorización escrita del locador; d) abonar los servicios a su cargo (luz, gas, teléfono, internet); e) permitir visitas del locador con 48 hs. de anticipación." },
+      { name:"Obligaciones del locador", text:"OBLIGACIONES DEL LOCADOR: El locador se obliga a: a) mantener el inmueble en condiciones de habitabilidad; b) responder por vicios ocultos; c) pagar expensas extraordinarias, ABL e impuestos a su cargo; d) garantizar el goce pacífico del inmueble durante todo el plazo contractual." },
+      { name:"Rescisión anticipada", text:"RESCISIÓN ANTICIPADA (Art. 1221 CCCN): Transcurridos los primeros seis meses de contrato, el locatario podrá rescindirlo con una notificación fehaciente con 3 meses de anticipación. Si la rescisión opera antes de los dos años, el locatario abonará una indemnización equivalente a 1,5 meses de alquiler. Si opera después, la indemnización será de 1 mes de alquiler." },
+      { name:"Cláusulas adicionales", text: fv('clausulas_adicionales') || 'Sin cláusulas adicionales.' },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la Ciudad Autónoma de Buenos Aires." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman tres (3) ejemplares de un mismo tenor y a un solo efecto.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    cont_locacion_usd: () => [
+      { name:"Encabezado", text:"CONTRATO DE LOCACIÓN DE VIVIENDA EN MONEDA EXTRANJERA\n(Ciudad Autónoma de Buenos Aires — Ley 27.551)\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Locador", text:"LOCADOR: " + f('locador_nombre') + ", DNI/CUIT " + f('locador_dni') + ", estado civil " + f('locador_ecivil') + ", domicilio " + f('locador_domicilio') + ", email " + f('locador_email') + "." },
+      { name:"Locatario", text:"LOCATARIO: " + f('locatario_nombre') + ", DNI/CUIT " + f('locatario_dni') + ", estado civil " + f('locatario_ecivil') + ", domicilio constituido en el inmueble objeto de este contrato, email " + f('locatario_email') + "." },
+      { name:"Objeto — Inmueble locado", text:"OBJETO: El locador cede al locatario el uso y goce del inmueble ubicado en " + f('inmueble_dir') + ", destinado exclusivamente a vivienda del locatario y su grupo familiar." },
+      { name:"Plazo y fechas", text:"PLAZO: " + f('duracion','2 años') + ", contados desde el " + fFecha('fecha_inicio') + "." },
+      { name:"Canon locativo en dólares", text:"CANON LOCATIVO EN DÓLARES: El locatario abonará mensualmente la suma de " + f('alq_usd') + " (" + f('alq_usd_letras','en letras a completar') + "), en moneda extranjera." },
+      { name:"Cláusula de pago en moneda extranjera", text:"CLÁUSULA DE MONEDA: " + f('clausula_moneda','Dólares billete (renuncia art. 765 CCCN)') + ".\n\nLas partes renuncian expresamente a la opción del Art. 765 CCCN y acuerdan que el canon será pagado en dólares estadounidenses billete, sin posibilidad de cancelación en moneda de curso legal." },
+      { name:"Depósito de garantía", text:"DEPÓSITO DE GARANTÍA: Equivalente a " + f('deposito_meses','1 mes') + " de alquiler en dólares, a restituir al vencimiento del contrato." },
+      { name:"Destino y obligaciones", text:"DESTINO Y OBLIGACIONES: El locatario se obliga a usar el inmueble exclusivamente como vivienda y a conservarlo en buen estado. Las obligaciones de las partes son las establecidas por el CCCN y la Ley 27.551." },
+      { name:"Rescisión anticipada", text:"RESCISIÓN ANTICIPADA (Art. 1221 CCCN): Pasados los primeros 6 meses, el locatario puede rescindir con 3 meses de preaviso, abonando la indemnización legal correspondiente." },
+      { name:"Cláusulas adicionales", text: fv('clausulas_adicionales') || 'Sin cláusulas adicionales.' },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman tres (3) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    cont_locacion_com: () => [
+      { name:"Encabezado", text:"CONTRATO DE LOCACIÓN COMERCIAL\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+      { name:"Locador", text:"LOCADOR: " + f('locador_nombre') + ", DNI/CUIT " + f('locador_dni') + ", estado civil " + f('locador_ecivil') + ", domicilio " + f('locador_domicilio') + ", email " + f('locador_email') + "." },
+      { name:"Locatario", text:"LOCATARIO: " + f('locatario_nombre') + ", DNI/CUIT " + f('locatario_dni') + ", estado civil " + f('locatario_ecivil') + ", domicilio real " + f('locatario_domicilio') + ", email " + f('locatario_email') + "." },
+      { name:"Objeto — Inmueble comercial", text:"OBJETO: El locador cede al locatario el uso y goce del inmueble comercial ubicado en " + f('inmueble_dir') + (fv('inmueble_superficie') ? ', superficie aprox. ' + fv('inmueble_superficie') + ' m²' : '') + ", destinado exclusivamente al rubro: " + f('rubro') + "." },
+      { name:"Plazo", text:"PLAZO: " + f('duracion','3') + " años, contados desde el " + fFecha('fecha_inicio') + "." },
+      { name:"Canon locativo", text:"CANON LOCATIVO: El locatario abonará mensualmente la suma de " + f('alq_pesos') + ". El ajuste del canon se realizará conforme al índice: " + f('ajuste','IPC — trimestral') + "." },
+      { name:"Depósito de garantía", text:"DEPÓSITO DE GARANTÍA: " + f('deposito','2 meses de alquiler') + ", a restituir al vencimiento del contrato previo cumplimiento de todas las obligaciones." },
+      { name:"Obligaciones del locatario", text:"OBLIGACIONES DEL LOCATARIO: a) Abonar el canon en tiempo y forma; b) mantener el inmueble en buen estado; c) no modificar el destino comercial pactado; d) no realizar obras sin autorización; e) abonar servicios, ABL proporcional y expensas ordinarias; f) no subarrendar ni ceder el contrato sin consentimiento del locador." },
+      { name:"Obligaciones del locador", text:"OBLIGACIONES DEL LOCADOR: a) Mantener el inmueble en condiciones de uso; b) garantizar el goce pacífico; c) pagar las expensas extraordinarias y cargas que correspondan al propietario; d) entregar el inmueble en buen estado." },
+      { name:"Destino", text:"DESTINO: El inmueble será utilizado exclusivamente para el rubro " + f('rubro') + ". Cualquier cambio de destino requerirá autorización escrita del locador." },
+      { name:"Rescisión", text:"RESCISIÓN: Las causales de rescisión son las establecidas en el CCCN. En caso de rescisión anticipada por el locatario, éste deberá abonar la indemnización correspondiente conforme normativa vigente." },
+      { name:"Cláusulas adicionales", text: fv('clausulas_adicionales') || 'Sin cláusulas adicionales.' },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil y Comercial de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman tres (3) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    cont_temp_con: () => [
+      { name:"Encabezado", text:"CONTRATO DE LOCACIÓN TEMPORARIA CON PAQUETE DE SERVICIOS\n(Art. 1199 CCCN)\n\nEn la fecha " + fecha_hoy + "." },
+      { name:"Locador", text:"LOCADOR: " + f('locador_nombre') + ", DNI/CUIT " + f('locador_dni') + ", domicilio " + f('locador_domicilio') + ", email " + f('locador_email') + "." },
+      { name:"Locatario", text:"LOCATARIO: " + f('locatario_nombre') + ", DNI/CUIT " + f('locatario_dni') + ", domicilio real " + f('locatario_domicilio') + ", email " + f('locatario_email') + "." },
+      { name:"Objeto — Inmueble temporario", text:"OBJETO: El locador cede temporariamente al locatario el uso y goce del inmueble ubicado en " + f('inmueble_dir') + ", destinado exclusivamente al uso turístico/temporal del locatario." },
+      { name:"Período y precio total", text:"PERÍODO: desde el " + fFecha('fecha_desde') + " hasta el " + fFecha('fecha_hasta') + ".\nPRECIO TOTAL DEL PERÍODO: " + f('precio_total') + " (" + f('precio_total_letras','en letras a completar') + ").\nEl precio incluye: " + f('incluye_servicios','servicios básicos según descripción') + "." },
+      { name:"Forma de pago", text:"FORMA DE PAGO: El precio total del período se abonará de la siguiente manera:\n• Al momento de la firma: un adelanto del precio total.\n• El saldo al momento del check-in o según acuerdo entre las partes." },
+      { name:"Depósito de garantía", text:"DEPÓSITO DE GARANTÍA: " + f('deposito_pct','30% del precio total') + ", a restituir dentro de las 48 hs. del check-out, previo constatación del estado del inmueble." },
+      { name:"Servicios incluidos", text:"SERVICIOS INCLUIDOS EN EL PRECIO: " + f('incluye_servicios','A detallar por las partes') + "." },
+      { name:"Obligaciones del locatario", text:"OBLIGACIONES DEL LOCATARIO: a) Usar el inmueble exclusivamente con fines turísticos; b) respetar la capacidad máxima de ocupación; c) informar al locador cualquier desperfecto; d) hacer entrega del inmueble en el mismo estado en que lo recibió; e) respetar las normas del edificio/complejo." },
+      { name:"Naturaleza del contrato", text:"NATURALEZA: El presente contrato es de carácter temporario conforme al Art. 1199 CCCN, por lo que no resultan aplicables las normas de prórroga automática ni las disposiciones de la Ley 27.551 relativas a vivienda permanente." },
+      { name:"Cláusulas adicionales", text: fv('clausulas_adicionales') || 'Sin cláusulas adicionales.' },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+    cont_temp_sin: () => [
+      { name:"Encabezado", text:"CONTRATO DE LOCACIÓN TEMPORARIA SIN PAQUETE DE SERVICIOS\n(Art. 1199 CCCN)\n\nEn la fecha " + fecha_hoy + "." },
+      { name:"Locador", text:"LOCADOR: " + f('locador_nombre') + ", DNI/CUIT " + f('locador_dni') + ", domicilio " + f('locador_domicilio') + ", email " + f('locador_email') + "." },
+      { name:"Locatario", text:"LOCATARIO: " + f('locatario_nombre') + ", DNI/CUIT " + f('locatario_dni') + ", domicilio real " + f('locatario_domicilio') + ", email " + f('locatario_email') + "." },
+      { name:"Objeto — Inmueble temporario", text:"OBJETO: El locador cede temporariamente el inmueble ubicado en " + f('inmueble_dir') + ", destinado exclusivamente al uso turístico/temporal del locatario." },
+      { name:"Período y precio total", text:"PERÍODO: desde el " + fFecha('fecha_desde') + " hasta el " + fFecha('fecha_hasta') + ".\nPRECIO TOTAL DEL PERÍODO: " + f('precio_total') + " (" + f('precio_total_letras','en letras a completar') + ")." },
+      { name:"Servicios a cargo del locatario", text:"SERVICIOS A CARGO DEL LOCATARIO: " + f('expensas_servicios','Luz, gas, teléfono, internet y expensas ordinarias según facturación correspondiente al período') + ". El locatario abonará dichos servicios directamente a los proveedores correspondientes." },
+      { name:"Forma de pago", text:"FORMA DE PAGO: El precio total se abonará conforme acuerdo entre las partes, pudiendo pactarse adelantos y saldo al check-in." },
+      { name:"Depósito de garantía", text:"DEPÓSITO DE GARANTÍA: " + f('deposito_pct','30% del precio total') + ", a restituir dentro de las 48 hs. del check-out, previa verificación del estado del inmueble." },
+      { name:"Obligaciones del locatario", text:"OBLIGACIONES DEL LOCATARIO: a) Usar el inmueble exclusivamente con fines temporarios; b) respetar la capacidad máxima; c) abonar servicios a su cargo; d) restituir el inmueble en el mismo estado." },
+      { name:"Naturaleza temporaria", text:"NATURALEZA TEMPORARIA: Conforme Art. 1199 CCCN, el presente contrato tiene carácter temporario. No aplican las disposiciones sobre prórroga automática ni las normas de vivienda permanente (Ley 27.551)." },
+      { name:"Cláusulas adicionales", text: fv('clausulas_adicionales') || 'Sin cláusulas adicionales.' },
+      { name:"Jurisdicción", text:"JURISDICCIÓN: Tribunales Ordinarios en lo Civil de la CABA." },
+      { name:"Agente interviniente", text:"AGENTE INTERVINIENTE: " + f('agente') + ", en representación de RE/MAX CREA." },
+      { name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR },
+    ],
+
+  }; // fin clauseBuilders
+
+  if(clauseBuilders[docId]) return clauseBuilders[docId]();
+
+  // Fallback genérico
+  const docInfo2 = DOCS.find(d=>d.id===docId);
+  const title2 = docInfo2 ? docInfo2.name + ' — ' + docInfo2.desc : docId;
+  const cls = [
+    { name:"Encabezado", text:title2.toUpperCase() + "\n\nEn la Ciudad de Buenos Aires, a los " + fecha_hoy + "." },
+  ];
+  if(fv('inmueble_dir'))       cls.push({ name:"Inmueble",     text:"INMUEBLE: " + fv('inmueble_dir') + "." });
+  if(fv('comprador_nombre'))   cls.push({ name:"Comprador",    text:"COMPRADOR: " + fv('comprador_nombre') + ", DNI " + fv('comprador_dni') + ", domicilio " + fv('comprador_domicilio') + "." });
+  if(fv('vendedor_nombre'))    cls.push({ name:"Vendedor",     text:"VENDEDOR: " + fv('vendedor_nombre') + ", DNI " + fv('vendedor_dni') + "." });
+  if(fv('locatario_nombre'))   cls.push({ name:"Locatario",    text:"LOCATARIO: " + fv('locatario_nombre') + ", DNI " + fv('locatario_dni') + ", domicilio " + fv('locatario_domicilio') + "." });
+  if(fv('locador_nombre'))     cls.push({ name:"Locador",      text:"LOCADOR: " + fv('locador_nombre') + ", DNI " + fv('locador_dni') + "." });
+  if(fv('prop_nombre'))        cls.push({ name:"Propietario",  text:"PROPIETARIO: " + fv('prop_nombre') + ", DNI " + fv('prop_dni') + ", domicilio " + fv('prop_domicilio') + "." });
+  if(fv('precio_letras'))      cls.push({ name:"Precio",       text:"PRECIO: " + fv('precio_letras') + " (" + fv('precio_num') + ")." });
+  if(fv('reserva_num'))        cls.push({ name:"Reserva",      text:"RESERVA: " + fv('reserva_letras') + " (" + fv('reserva_num') + ")." });
+  if(fv('ad_ref')||fv('clausulas_adicionales')) cls.push({ name:"Condiciones adicionales", text:fv('ad_ref')||fv('clausulas_adicionales') });
+  cls.push({ name:"Cierre y firmas", text:"En prueba de conformidad, se firman dos (2) ejemplares.\n\nCORREDOR INMOBILIARIO: " + CORREDOR });
+  return cls;
+}
+
+/* ════════════════════════════════════════════════════
+   ESTADO GLOBAL
+════════════════════════════════════════════════════ */
+let selectedDoc   = null;
+let currentCat    = "todos";
+let currentStep   = 1;
+let savedDocs     = {};          // { id: { docId, title, data, clauses, status, updatedAt } }
+let activeDocKey  = null;        // UUID del doc en edición
+let editingClause = null;
+
+/* ════════════════════════════════════════════════════
+   PERSISTENCIA (localStorage)
+════════════════════════════════════════════════════ */
+const STORAGE_KEY = 'remax_crea_docs_v2';
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) savedDocs = JSON.parse(raw);
+  } catch(e) { savedDocs = {}; }
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedDocs));
+  } catch(e) { showToast('Error al guardar en localStorage', 'error'); }
+}
+
+function genId() {
+  return 'doc_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+}
+
+/* ════════════════════════════════════════════════════
+   SIDEBAR
+════════════════════════════════════════════════════ */
+function renderSidebar() {
+  const list = document.getElementById('sidebar-list');
+  const q    = (document.getElementById('sidebar-search').value||'').toLowerCase();
+  const docs = Object.entries(savedDocs)
+    .filter(([,d]) => !q || d.title.toLowerCase().includes(q) || (d.docId||'').toLowerCase().includes(q))
+    .sort((a,b) => (b[1].updatedAt||0) - (a[1].updatedAt||0));
+
+  if(!docs.length) {
+    list.innerHTML = `<div class="sidebar-empty">
+      <div class="empty-icon">📂</div>
+      ${q ? 'Sin resultados para "<strong>'+q+'</strong>"' : 'Todavía no hay documentos guardados.<br>Creá uno nuevo para empezar.'}
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = docs.map(([key,doc]) => {
+    const docInfo = DOCS.find(d=>d.id===doc.docId)||{};
+    const badge   = BADGE_CSS[docInfo.cat]||'badge-gestion';
+    const label   = BADGE_LABEL[docInfo.cat]||'Doc';
+    const date    = doc.updatedAt ? new Date(doc.updatedAt).toLocaleDateString('es-AR') : '';
+    const isActive = key === activeDocKey;
+    const statusDot = doc.status==='done' ? 'status-done' : 'status-draft';
+    return `
+      <div class="doc-item${isActive?' active':''}" id="di-${key}" onclick="loadDoc('${key}')">
+        <div class="doc-item-name">${docInfo.icon||'📄'} ${doc.title}</div>
+        <div class="doc-item-meta">
+          <span class="doc-item-status ${statusDot}"></span>
+          <span class="doc-badge ${badge}">${label}</span>
+          ${date ? `<span>${date}</span>` : ''}
+        </div>
+        <button class="doc-item-delete" onclick="deleteDoc(event,'${key}')" title="Eliminar">✕</button>
+      </div>`;
+  }).join('');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('show');
+}
+
+/* ════════════════════════════════════════════════════
+   STEPS
+════════════════════════════════════════════════════ */
+function setStep(n) {
+  currentStep = n;
+  const total = 4;
+  for(let i=1;i<=total;i++){
+    const el = document.getElementById('step'+i);
+    if(!el) continue;
+    el.classList.remove('active','done');
+    if(i<n) el.classList.add('done');
+    else if(i===n) el.classList.add('active');
+  }
+  document.getElementById('view-select').classList.toggle('hidden', n!==1);
+  document.getElementById('view-form').classList.toggle('hidden', n!==2);
+  document.getElementById('view-editor').classList.toggle('hidden', n!==3);
+  document.getElementById('view-pdf').classList.toggle('hidden', n!==4);
+}
+
+function stepClick(n) {
+  if(n < currentStep) {
+    if(n===1) goBack(1);
+    else if(n===2) goBack(2);
+    else if(n===3 && currentStep===4) { setStep(3); updatePreview(); }
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   STEP 1 — SELECCIÓN
+════════════════════════════════════════════════════ */
+function renderCatTabs() {
+  document.getElementById('cat-tabs').innerHTML = CATS.map(c =>
+    `<div class="cat-tab${c.id===currentCat?' active':''}" onclick="filterCat('${c.id}')">${c.label}</div>`
+  ).join('');
+}
+
+function renderDocGrid() {
+  const filtered = currentCat==="todos" ? DOCS : DOCS.filter(d=>d.cat===currentCat);
+  document.getElementById('doc-grid').innerHTML = filtered.map(doc => `
+    <div class="doc-card${selectedDoc===doc.id?' selected':''}" onclick="selectDoc('${doc.id}')">
+      <div class="doc-icon">${doc.icon}</div>
+      <div class="doc-name">${doc.name}</div>
+      <div class="doc-desc">${doc.desc}</div>
+      <span class="doc-badge ${BADGE_CSS[doc.cat]}">${BADGE_LABEL[doc.cat]||doc.cat}</span>
+    </div>
+  `).join('');
+}
+
+function filterCat(cat) { currentCat=cat; renderCatTabs(); renderDocGrid(); }
+function selectDoc(id)   { selectedDoc=id; renderDocGrid(); document.getElementById('btn-next1').disabled=false; }
+
+function startNewDoc() {
+  selectedDoc=null; activeDocKey=null;
+  renderDocGrid();
+  document.getElementById('btn-next1').disabled=true;
+  setStep(1);
+  renderSidebar();
+  if(window.innerWidth<=768) toggleSidebar();
+}
+
+function goToStart() { startNewDoc(); return false; }
+
+/* ════════════════════════════════════════════════════
+   STEP 2 — FORMULARIO
+════════════════════════════════════════════════════ */
+function renderField(f) {
+  const cls = f.full ? 'field full' : 'field';
+  let input;
+  if(f.type==='select')   input = `<select id="${f.id}">${(f.options||[]).map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
+  else if(f.type==='textarea') input = `<textarea id="${f.id}" placeholder="${f.placeholder||''}" rows="3"></textarea>`;
+  else if(f.type==='date')     input = `<input type="date" id="${f.id}">`;
+  else                         input = `<input type="text" id="${f.id}" placeholder="${f.placeholder||''}">`;
+  return `<div class="${cls}"><label for="${f.id}">${f.label}</label>${input}</div>`;
+}
+
+function renderFormSections(def, existingData) {
+  const cont = document.getElementById('form-sections');
+  cont.innerHTML = def.sections.map(sec => `
+    <div class="form-card">
+      <div class="form-card-title">${sec.title}</div>
+      <div class="form-grid">${sec.fields.map(f=>renderField(f)).join('')}</div>
+    </div>`).join('');
+  if(existingData) {
+    def.sections.forEach(sec => sec.fields.forEach(f => {
+      const el = document.getElementById(f.id);
+      if(el && existingData[f.id] !== undefined) el.value = existingData[f.id];
+    }));
+  }
+}
+
+function collectData() {
+  const def = FORMS[selectedDoc];
+  const data = {};
+  def.sections.forEach(sec => sec.fields.forEach(f => {
+    const el = document.getElementById(f.id);
+    if(el) data[f.id] = el.value||'';
+  }));
+  return data;
+}
+
+function goToForm() {
+  if(!selectedDoc || !FORMS[selectedDoc]) return;
+  const def = FORMS[selectedDoc];
+  document.getElementById('form-title').textContent = def.title;
+  document.getElementById('form-sub').textContent = 'Completá los datos para generar el documento.';
+  renderFormSections(def, null);
+  setStep(2);
+}
+
+function goBack(toStep) {
+  if(toStep===1) { setStep(1); renderDocGrid(); }
+  else if(toStep===2) { setStep(2); }
+}
+
+/* ════════════════════════════════════════════════════
+   GUARDAR BORRADOR
+════════════════════════════════════════════════════ */
+function saveDraft() {
+  const data = (currentStep>=2) ? collectData() : (activeDocKey && savedDocs[activeDocKey] ? savedDocs[activeDocKey].data : {});
+  if(!selectedDoc) { showToast('Seleccioná un tipo de documento primero','error'); return; }
+  const docInfo = DOCS.find(d=>d.id===selectedDoc)||{};
+  if(!activeDocKey) activeDocKey = genId();
+
+  const clauses = (currentStep>=3) ? getClausesFromEditor() : buildClauses(selectedDoc, data);
+
+  savedDocs[activeDocKey] = {
+    docId: selectedDoc,
+    title: docInfo.name + ' — ' + docInfo.desc,
+    data,
+    clauses,
+    status: currentStep>=4 ? 'done' : 'draft',
+    updatedAt: Date.now(),
+  };
+  saveToStorage();
+  renderSidebar();
+  showToast('✓ Borrador guardado');
+}
+
+/* ════════════════════════════════════════════════════
+   CARGAR DOCUMENTO GUARDADO
+════════════════════════════════════════════════════ */
+function loadDoc(key) {
+  const doc = savedDocs[key];
+  if(!doc) return;
+  activeDocKey = key;
+  selectedDoc  = doc.docId;
+  if(!FORMS[selectedDoc]) { showToast('Tipo de documento no reconocido','error'); return; }
+
+  const def = FORMS[selectedDoc];
+  document.getElementById('form-title').textContent = def.title;
+  document.getElementById('form-sub').textContent = 'Documento guardado — podés modificar los datos.';
+  renderFormSections(def, doc.data);
+  setStep(2);
+  renderSidebar();
+  if(window.innerWidth<=768) toggleSidebar();
+}
+
+function deleteDoc(e, key) {
+  e.stopPropagation();
+  showModal(
+    '¿Eliminar documento?',
+    'Esta acción no se puede deshacer. El documento se eliminará permanentemente.',
+    () => {
+      delete savedDocs[key];
+      saveToStorage();
+      if(activeDocKey===key) { activeDocKey=null; startNewDoc(); }
+      renderSidebar();
+      showToast('Documento eliminado');
+    }
+  );
+}
+
+/* ════════════════════════════════════════════════════
+   STEP 3 — EDITOR DE CLÁUSULAS
+════════════════════════════════════════════════════ */
+let currentClauses = [];
+let bgImageBase64 = localStorage.getItem('remax_bg_image') || null;
+
+function goToEditor() {
+  const data = collectData();
+  currentClauses = buildClauses(selectedDoc, data);
+  // Si el doc ya tenía cláusulas guardadas, las usamos
+  if(activeDocKey && savedDocs[activeDocKey] && savedDocs[activeDocKey].clauses) {
+    currentClauses = savedDocs[activeDocKey].clauses;
+  }
+  setStep(3);
+  renderClauseList();
+  updatePreview();
+  updatePreview();
+}
+
+function renderClauseList() {
+  const list = document.getElementById('clause-list');
+  list.innerHTML = currentClauses.map((cl,i) => `
+    <div class="clause-item${editingClause===i?' editing':''}" id="cl-${i}">
+      <div class="clause-item-header" onclick="toggleClause(${i})">
+        <span class="clause-drag-handle">⠿</span>
+        <span class="clause-number">${i+1}</span>
+        <span class="clause-name">${cl.name}</span>
+        <div class="clause-actions">
+          <button class="clause-btn" onclick="moveClause(event,${i},-1)" title="Subir">↑</button>
+          <button class="clause-btn" onclick="moveClause(event,${i},1)"  title="Bajar">↓</button>
+          <button class="clause-btn danger" onclick="removeClause(event,${i})" title="Eliminar">✕</button>
+        </div>
+      </div>
+      <div class="clause-body">
+        <textarea class="clause-textarea" id="ct-${i}" oninput="syncClause(${i})" rows="5">${escHtml(cl.text)}</textarea>
+        <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
+          <input type="text" id="cn-${i}" value="${escHtml(cl.name)}" placeholder="Nombre de la cláusula"
+            style="border:1px solid var(--gray-200);border-radius:4px;padding:5px 8px;font-size:11px;flex:1;"
+            oninput="syncClauseName(${i})">
+          <button class="btn" style="padding:5px 10px;font-size:11px;" onclick="toggleClause(${i})">Listo ✓</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function toggleClause(i) {
+  editingClause = (editingClause===i) ? null : i;
+  renderClauseList();
+  if(editingClause!==null) {
+    setTimeout(()=>{ const ta=document.getElementById('ct-'+editingClause); if(ta) ta.focus(); },50);
+  }
+}
+
+function syncClause(i) {
+  const ta = document.getElementById('ct-'+i);
+  if(ta) currentClauses[i].text = ta.value;
+  updatePreview();
+}
+
+function syncClauseName(i) {
+  const inp = document.getElementById('cn-'+i);
+  if(inp) {
+    currentClauses[i].name = inp.value;
+    const nameEl = document.querySelector('#cl-'+i+' .clause-name');
+    if(nameEl) nameEl.textContent = inp.value;
+    const numEl  = document.querySelector('#cl-'+i+' .clause-number');
+    // keep number display
+  }
+}
+
+function moveClause(e,i,dir) {
+  e.stopPropagation();
+  const ni = i+dir;
+  if(ni<0||ni>=currentClauses.length) return;
+  [currentClauses[i],currentClauses[ni]] = [currentClauses[ni],currentClauses[i]];
+  if(editingClause===i) editingClause=ni;
+  else if(editingClause===ni) editingClause=i;
+  renderClauseList();
+  updatePreview();
+}
+
+function removeClause(e,i) {
+  e.stopPropagation();
+  currentClauses.splice(i,1);
+  if(editingClause===i) editingClause=null;
+  else if(editingClause>i) editingClause--;
+  renderClauseList();
+  updatePreview();
+}
+
+function addCustomClause() {
+  currentClauses.push({ name:'Cláusula personalizada', text:'Escribí aquí el texto de la cláusula...' });
+  editingClause = currentClauses.length-1;
+  renderClauseList();
+  updatePreview();
+  setTimeout(()=>{
+    const ta = document.getElementById('ct-'+editingClause);
+    if(ta) { ta.focus(); ta.select(); }
+    document.getElementById('clause-list').scrollTop = 99999;
+  },100);
+}
+
+function resetClauses() {
+  showModal('¿Restaurar cláusulas?', 'Se restaurarán las cláusulas originales del documento. Los cambios que hiciste se perderán.', ()=>{
+    const data = collectData();
+    currentClauses = buildClauses(selectedDoc, data);
+    editingClause = null;
+    renderClauseList();
+    updatePreview();
+    showToast('Cláusulas restauradas');
+  });
+}
+
+function getClausesFromEditor() {
+  // Sync any open textarea
+  if(editingClause!==null) {
+    const ta = document.getElementById('ct-'+editingClause);
+    if(ta) currentClauses[editingClause].text = ta.value;
+  }
+  return JSON.parse(JSON.stringify(currentClauses));
+}
+
+
+function escapeHtml(str='') {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function loadStoredBgImage() {
+  if(bgImageBase64){
+    document.documentElement.style.setProperty('--bg-image', `url(${bgImageBase64})`);
+  }
+}
+
+function handleBgImageUpload(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    bgImageBase64 = e.target.result;
+    localStorage.setItem('remax_bg_image', bgImageBase64);
+    document.documentElement.style.setProperty('--bg-image', `url(${bgImageBase64})`);
+    updatePreview();
+    showToast('Imagen de fondo cargada', 'success');
+  };
+
+  reader.readAsDataURL(file);
+}
+
+
+function updatePreview() {
+  const preview = document.getElementById('preview-content');
+  if(!preview) return;
+
+  const useBg = document.getElementById('use-bg-image')?.checked;
+
+  let html = `
+    <div class="preview-paper ${useBg ? 'pdf-with-bg' : ''}">
+      <div class="pdf-header">
+        <div class="pdf-logo">RE/MAX CREA</div>
+        <div class="pdf-sub">Sistema de generación documental</div>
+        <div class="pdf-title">${escapeHtml(currentDocData?.title || 'Documento')}</div>
+      </div>
+  `;
+
+  currentClauses.forEach((c, idx) => {
+    html += `
+      <div class="clause">
+        <div class="clause-title">Cláusula ${idx + 1}</div>
+        <div class="clause-text">${escapeHtml(c.text || '')}</div>
+      </div>
+    `;
+  });
+
+  html += '</div>';
+
+  preview.innerHTML = html;
+}
+
+
+/* ════════════════════════════════════════════════════
+   STEP 4 — PDF
+════════════════════════════════════════════════════ */
+function goToPDF() {
+  // Save with clauses
+  saveDraft();
+  if(activeDocKey) savedDocs[activeDocKey].status='done';
+  saveToStorage();
+  renderSidebar();
+  setStep(4);
+  renderPDFView();
+}
+
+function renderPDFView() {
+  const docInfo = DOCS.find(d=>d.id===selectedDoc)||{};
+  const clauses = getClausesFromEditor();
+
+  document.getElementById('pdf-output').innerHTML = `
+    <div class="success-box">
+      <div class="success-icon">📄</div>
+      <div class="success-title">Documento listo para generar</div>
+      <div class="success-sub">${docInfo.icon||''} ${docInfo.name||''} — ${docInfo.desc||''}</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+      <button class="btn primary" onclick="generatePDF()">⬇️ Descargar PDF</button>
+      <button class="btn" onclick="goBack(3)">✏️ Seguir editando</button>
+      <button class="btn" onclick="startNewDoc()">＋ Nuevo documento</button>
+    </div>
+    <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:16px;font-size:12px;color:var(--gray-500);">
+      <strong>Vista previa del documento:</strong>
+      <div style="margin-top:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.8;color:var(--gray-700);white-space:pre-wrap;max-height:400px;overflow-y:auto;">${clauses.map((c,i)=>`${i+1}. ${c.name.toUpperCase()}\n\n${c.text}`).join('\n\n'+'─'.repeat(50)+'\n\n')}</div>
+    </div>`;
+}
+
+function generatePDF() {
+  const docInfo = DOCS.find(d=>d.id===selectedDoc)||{};
+  const clauses = getClausesFromEditor();
+  const data    = activeDocKey && savedDocs[activeDocKey] ? savedDocs[activeDocKey].data : {};
+  const fname   = (data.comprador_nombre||data.locatario_nombre||data.prop_nombre||data.cedente_nombre||'').trim();
+  const titulo  = `${docInfo.name||'Documento'} — ${docInfo.desc||''}`;
+
+  // Build HTML for PDF
+  const bodyLines = clauses.map((c,i) =>
+    `<div style="margin-bottom:24px;">
+      <div style="font-weight:700;font-size:10pt;text-transform:uppercase;margin-bottom:6px;color:#333;border-bottom:1px solid #ddd;padding-bottom:4px;">${i+1}. ${escHtml(c.name)}</div>
+      <div style="font-size:10pt;line-height:1.8;white-space:pre-wrap;">${escHtml(c.text)}</div>
+    </div>`
+  ).join('');
+
+  // Signature blocks
+  const sigParts = [];
+  if(data.comprador_nombre) sigParts.push({label:'COMPRADOR',name:data.comprador_nombre,dni:data.comprador_dni||''});
+  if(data.locatario_nombre) sigParts.push({label:'LOCATARIO',name:data.locatario_nombre,dni:data.locatario_dni||''});
+  if(data.locador_nombre)   sigParts.push({label:'LOCADOR',name:data.locador_nombre,dni:data.locador_dni||''});
+  if(data.vendedor_nombre)  sigParts.push({label:'VENDEDOR',name:data.vendedor_nombre,dni:data.vendedor_dni||''});
+  if(data.prop_nombre)      sigParts.push({label:'PROPIETARIO',name:data.prop_nombre,dni:data.prop_dni||''});
+  if(data.cedente_nombre)   sigParts.push({label:'CEDENTE',name:data.cedente_nombre,dni:data.cedente_dni||''});
+  if(data.cesionario_nombre)sigParts.push({label:'CESIONARIO',name:data.cesionario_nombre,dni:data.cesionario_dni||''});
+  sigParts.push({label:'CORREDOR INMOBILIARIO',name:'René Alejandro Vera',dni:'CSI 5848 / CPI 6778'});
+
+  const sigGrid = sigParts.map(s=>`
+    <div style="text-align:center;">
+      <div style="border-top:1.5px solid #000;padding-top:8px;margin-top:60px;">
+        <strong>${s.label}</strong><br>
+        <span style="font-size:9pt;color:#555;">${s.name}${s.dni?' — '+s.dni:''}</span>
+      </div>
+    </div>`).join('');
+
+  const sigStyle = sigParts.length<=2 ? 'display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:40px;page-break-inside:avoid;'
+                                       : 'display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:40px;margin-top:40px;page-break-inside:avoid;';
+
+  const html = `
+    <div style="font-family:Arial,sans-serif;font-size:11pt;line-height:1.6;color:#000;padding:0 20px;">
+      <div style="text-align:center;border-bottom:2px solid #CC0000;padding-bottom:16px;margin-bottom:24px;">
+        <div style="font-size:20pt;font-weight:900;color:#CC0000;letter-spacing:-1px;">RE/MAX CREA</div>
+        <div style="font-size:9pt;color:#666;margin-top:2px;">Sistema de documentos inmobiliarios</div>
+        <div style="font-size:13pt;font-weight:700;margin-top:12px;text-transform:uppercase;letter-spacing:.03em;">${escHtml(titulo)}</div>
+        <div style="font-size:9pt;color:#888;margin-top:4px;">Fecha de generación: ${new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'})}</div>
+      </div>
+      ${bodyLines}
+      <div style="${sigStyle}">${sigGrid}</div>
+    </div>`;
+
+  const pdfSrc = document.getElementById('pdf-source');
+  pdfSrc.innerHTML = html;
+
+  const fileTitle = titulo.replace(/[^a-z0-9 \-]/gi,'_').substring(0,50);
+  const opt = {
+    margin: [15,15,15,15],
+    filename: fileTitle + '.pdf',
+    image: { type:'jpeg', quality:0.95 },
+    html2canvas: { scale:2, useCORS:true },
+    jsPDF: { unit:'mm', format:'a4', orientation:'portrait' },
+  };
+
+  showToast('⏳ Generando PDF...');
+  html2pdf().set(opt).from(pdfSrc).save().then(()=>{
+    showToast('✓ PDF descargado', 'success');
+    pdfSrc.innerHTML='';
+  }).catch(e=>{
+    showToast('Error al generar PDF','error');
+    pdfSrc.innerHTML='';
+    console.error(e);
+  });
+}
+
+function goBack(toStep) {
+  if(toStep===1) {
+    selectedDoc=null; activeDocKey=null;
+    renderDocGrid();
+    document.getElementById('btn-next1').disabled=true;
+    setStep(1);
+    renderSidebar();
+  } else if(toStep===2) {
+    setStep(2);
+  } else if(toStep===3) {
+    setStep(3);
+    renderClauseList();
+    updatePreview();
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   EXPORT / IMPORT DE DATOS
+════════════════════════════════════════════════════ */
+function exportAllDocs() {
+  const blob = new Blob([JSON.stringify(savedDocs, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'remax_crea_documentos.json'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ Datos exportados');
+}
+
+/* ════════════════════════════════════════════════════
+   MODAL
+════════════════════════════════════════════════════ */
+let _modalCb = null;
+function showModal(title, body, cb) {
+  document.getElementById('modal-title').textContent   = title;
+  document.getElementById('modal-body').textContent    = body;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  _modalCb = cb;
+  document.getElementById('modal-confirm').onclick = ()=>{ closeModal(); if(_modalCb) _modalCb(); };
+}
+function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); _modalCb=null; }
+
+/* ════════════════════════════════════════════════════
+   TOAST
+════════════════════════════════════════════════════ */
+let _toastTimer = null;
+function showToast(msg, type='') {
+  if(_toastTimer) clearTimeout(_toastTimer);
+  const existing = document.querySelector('.toast');
+  if(existing) existing.remove();
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' '+type : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  _toastTimer = setTimeout(()=>{ if(t.parentNode) t.remove(); }, 3000);
+}
+
+/* ════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════ */
+loadFromStorage();
+renderCatTabs();
+renderDocGrid();
+renderSidebar();
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadStoredBgImage();
+});
+</script>
+
+</body>
+</html>
