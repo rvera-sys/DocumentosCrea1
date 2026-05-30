@@ -576,7 +576,12 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
    PDF OUTPUT
 ═══════════════════════════════════════════════════ */
 #pdf-source {
-  display: none;
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 }
 .pdf-doc {
   font-family: Arial, sans-serif;
@@ -2606,7 +2611,9 @@ function goToPDF() {
 
 function renderPDFView() {
   const docInfo = DOCS.find(d=>d.id===selectedDoc)||{};
+  const formDef = FORMS[selectedDoc];
   const clauses = getClausesFromEditor();
+  const titulo = formDef ? formDef.title : (docInfo.name ? docInfo.name + ' — ' + docInfo.desc : 'Documento');
 
   document.getElementById('pdf-output').innerHTML = `
     <div class="success-box">
@@ -2619,9 +2626,17 @@ function renderPDFView() {
       <button class="btn" onclick="goBack(3)">✏️ Seguir editando</button>
       <button class="btn" onclick="startNewDoc()">＋ Nuevo documento</button>
     </div>
-    <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:16px;font-size:12px;color:var(--gray-500);">
-      <strong>Vista previa del documento:</strong>
-      <div style="margin-top:12px;font-family:'Courier New',monospace;font-size:11px;line-height:1.8;color:var(--gray-700);white-space:pre-wrap;max-height:400px;overflow-y:auto;">${clauses.map((c,i)=>`${i+1}. ${c.name.toUpperCase()}\n\n${c.text}`).join('\n\n'+'─'.repeat(50)+'\n\n')}</div>
+    <div class="preview-paper" style="max-width:210mm;margin:0 auto;">
+      <div class="pdf-header">
+        <div class="pdf-logo">RE/MAX CREA</div>
+        <div class="pdf-sub">Sistema de generación documental</div>
+        <div class="pdf-title">${escHtml(titulo)}</div>
+      </div>
+      ${clauses.map((c,i)=>`
+        <div class="clause">
+          <div class="clause-title">${escHtml(c.name)}</div>
+          <div class="clause-text">${escHtml(c.text||'')}</div>
+        </div>`).join('')}
     </div>`;
 }
 
