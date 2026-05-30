@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RE/MAX CREA — Generador de Documentos</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
 document.addEventListener('DOMContentLoaded', () => {
   loadStoredBgImage();
 });
@@ -1732,7 +1733,7 @@ function buildClauses(docId, data) {
       const mon = rawP.includes('USD') ? 'USD' : '$';
       return pct + '% + IVA (aprox. ' + mon + ' ' + monto.toLocaleString('es-AR') + ' + IVA)';
     }
-    return pct + '% + IVA';
+    return (isNaN(pct) ? defaultPct : pct) + '% + IVA';
   };
 
   const inmDir = (dirKey='inmueble_dir', barrioKey='inmueble_barrio') => {
@@ -2295,7 +2296,7 @@ function startNewDoc() {
   document.getElementById('btn-next1').disabled=true;
   setStep(1);
   renderSidebar();
-  if(window.innerWidth<=768) toggleSidebar();
+  if(window.matchMedia('(max-width: 768px)').matches) toggleSidebar();
 }
 
 function goToStart() { startNewDoc(); return false; }
@@ -2330,6 +2331,7 @@ function renderFormSections(def, existingData) {
 
 function collectData() {
   const def = FORMS[selectedDoc];
+  if (!def) return {};
   const data = {};
   def.sections.forEach(sec => sec.fields.forEach(f => {
     const el = document.getElementById(f.id);
@@ -2347,16 +2349,11 @@ function goToForm() {
   setStep(2);
 }
 
-function goBack(toStep) {
-  if(toStep===1) { setStep(1); renderDocGrid(); }
-  else if(toStep===2) { setStep(2); }
-}
-
 /* ════════════════════════════════════════════════════
    GUARDAR BORRADOR
 ════════════════════════════════════════════════════ */
 function saveDraft() {
-  const data = (currentStep>=2) ? collectData() : (activeDocKey && savedDocs[activeDocKey] ? savedDocs[activeDocKey].data : {});
+  const data = (currentStep>=2 && currentStep<3) ? collectData() : (activeDocKey && savedDocs[activeDocKey] ? savedDocs[activeDocKey].data : {});
   if(!selectedDoc) { showToast('Seleccioná un tipo de documento primero','error'); return; }
   const docInfo = DOCS.find(d=>d.id===selectedDoc)||{};
   if(!activeDocKey) activeDocKey = genId();
@@ -2392,7 +2389,7 @@ function loadDoc(key) {
   renderFormSections(def, doc.data);
   setStep(2);
   renderSidebar();
-  if(window.innerWidth<=768) toggleSidebar();
+  if(window.matchMedia('(max-width: 768px)').matches) toggleSidebar();
 }
 
 function deleteDoc(e, key) {
@@ -2418,14 +2415,15 @@ let bgImageBase64 = localStorage.getItem('remax_bg_image') || null;
 
 function goToEditor() {
   const data = collectData();
+  if(activeDocKey && savedDocs[activeDocKey]) {
+    savedDocs[activeDocKey].data = data;
+  }
   currentClauses = buildClauses(selectedDoc, data);
-  // Si el doc ya tenía cláusulas guardadas, las usamos
-  if(activeDocKey && savedDocs[activeDocKey] && savedDocs[activeDocKey].clauses) {
+  if(activeDocKey && savedDocs[activeDocKey] && savedDocs[activeDocKey].clauses && savedDocs[activeDocKey].clauses.length) {
     currentClauses = savedDocs[activeDocKey].clauses;
   }
   setStep(3);
   renderClauseList();
-  updatePreview();
   updatePreview();
 }
 
@@ -2536,15 +2534,6 @@ function getClausesFromEditor() {
 }
 
 
-function escapeHtml(str='') {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
 function loadStoredBgImage() {
   if(bgImageBase64){
     document.documentElement.style.setProperty('--bg-image', `url(${bgImageBase64})`);
@@ -2574,13 +2563,16 @@ function updatePreview() {
   if(!preview) return;
 
   const useBg = document.getElementById('use-bg-image')?.checked;
+  const docInfo = DOCS.find(d=>d.id===selectedDoc)||{};
+  const formDef = FORMS[selectedDoc];
+  const title = formDef ? formDef.title : (docInfo.name ? docInfo.name + ' — ' + docInfo.desc : 'Documento');
 
   let html = `
     <div class="preview-paper ${useBg ? 'pdf-with-bg' : ''}">
       <div class="pdf-header">
         <div class="pdf-logo">RE/MAX CREA</div>
         <div class="pdf-sub">Sistema de generación documental</div>
-        <div class="pdf-title">${escapeHtml(currentDocData?.title || 'Documento')}</div>
+        <div class="pdf-title">${escHtml(title)}</div>
       </div>
   `;
 
@@ -2588,7 +2580,7 @@ function updatePreview() {
     html += `
       <div class="clause">
         <div class="clause-title">Cláusula ${idx + 1}</div>
-        <div class="clause-text">${escapeHtml(c.text || '')}</div>
+        <div class="clause-text">${escHtml(c.text || '')}</div>
       </div>
     `;
   });
@@ -2648,15 +2640,28 @@ function generatePDF() {
     </div>`
   ).join('');
 
-  // Signature blocks
+  // Signature blocks by doc type
   const sigParts = [];
-  if(data.comprador_nombre) sigParts.push({label:'COMPRADOR',name:data.comprador_nombre,dni:data.comprador_dni||''});
-  if(data.locatario_nombre) sigParts.push({label:'LOCATARIO',name:data.locatario_nombre,dni:data.locatario_dni||''});
-  if(data.locador_nombre)   sigParts.push({label:'LOCADOR',name:data.locador_nombre,dni:data.locador_dni||''});
-  if(data.vendedor_nombre)  sigParts.push({label:'VENDEDOR',name:data.vendedor_nombre,dni:data.vendedor_dni||''});
-  if(data.prop_nombre)      sigParts.push({label:'PROPIETARIO',name:data.prop_nombre,dni:data.prop_dni||''});
-  if(data.cedente_nombre)   sigParts.push({label:'CEDENTE',name:data.cedente_nombre,dni:data.cedente_dni||''});
-  if(data.cesionario_nombre)sigParts.push({label:'CESIONARIO',name:data.cesionario_nombre,dni:data.cesionario_dni||''});
+  const docType = (selectedDoc||'').split('_')[0];
+  if(docType==='r'||docType==='prorroga') {
+    if(data.comprador_nombre) sigParts.push({label:'COMPRADOR',name:data.comprador_nombre,dni:data.comprador_dni||''});
+    if(data.vendedor_nombre)  sigParts.push({label:'VENDEDOR',name:data.vendedor_nombre,dni:data.vendedor_dni||''});
+  } else if(docType==='aut') {
+    if(data.prop_nombre)      sigParts.push({label:'PROPIETARIO',name:data.prop_nombre,dni:data.prop_dni||''});
+    if(data.emp_razons)       sigParts.push({label:'DESARROLLADORA',name:data.emp_razons,dni:data.emp_cuit||''});
+  } else if(docType==='cont') {
+    if(data.locador_nombre)   sigParts.push({label:'LOCADOR',name:data.locador_nombre,dni:data.locador_dni||''});
+    if(data.locatario_nombre) sigParts.push({label:'LOCATARIO',name:data.locatario_nombre,dni:data.locatario_dni||''});
+    if(data.garante_nombre)   sigParts.push({label:'GARANTE',name:data.garante_nombre,dni:data.garante_dni||''});
+  } else {
+    if(data.comprador_nombre) sigParts.push({label:'COMPRADOR',name:data.comprador_nombre,dni:data.comprador_dni||''});
+    if(data.vendedor_nombre)  sigParts.push({label:'VENDEDOR',name:data.vendedor_nombre,dni:data.vendedor_dni||''});
+    if(data.locatario_nombre) sigParts.push({label:'LOCATARIO',name:data.locatario_nombre,dni:data.locatario_dni||''});
+    if(data.locador_nombre)   sigParts.push({label:'LOCADOR',name:data.locador_nombre,dni:data.locador_dni||''});
+    if(data.prop_nombre)      sigParts.push({label:'PROPIETARIO',name:data.prop_nombre,dni:data.prop_dni||''});
+    if(data.cedente_nombre)   sigParts.push({label:'CEDENTE',name:data.cedente_nombre,dni:data.cedente_dni||''});
+    if(data.cesionario_nombre)sigParts.push({label:'CESIONARIO',name:data.cesionario_nombre,dni:data.cesionario_dni||''});
+  }
   sigParts.push({label:'CORREDOR INMOBILIARIO',name:'René Alejandro Vera',dni:'CSI 5848 / CPI 6778'});
 
   const sigGrid = sigParts.map(s=>`
@@ -2670,8 +2675,10 @@ function generatePDF() {
   const sigStyle = sigParts.length<=2 ? 'display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:40px;page-break-inside:avoid;'
                                        : 'display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:40px;margin-top:40px;page-break-inside:avoid;';
 
+  const useBgPdf = document.getElementById('use-bg-image')?.checked && bgImageBase64;
+  const bgStyle = useBgPdf ? `background-image:url(${bgImageBase64});background-size:cover;background-position:center;` : '';
   const html = `
-    <div style="font-family:Arial,sans-serif;font-size:11pt;line-height:1.6;color:#000;padding:0 20px;">
+    <div style="font-family:Arial,sans-serif;font-size:11pt;line-height:1.6;color:#000;padding:0 20px;${bgStyle}">
       <div style="text-align:center;border-bottom:2px solid #CC0000;padding-bottom:16px;margin-bottom:24px;">
         <div style="font-size:20pt;font-weight:900;color:#CC0000;letter-spacing:-1px;">RE/MAX CREA</div>
         <div style="font-size:9pt;color:#666;margin-top:2px;">Sistema de documentos inmobiliarios</div>
@@ -2695,12 +2702,16 @@ function generatePDF() {
   };
 
   showToast('⏳ Generando PDF...');
+  const btn = document.querySelector('#pdf-output .btn.primary');
+  if(btn) btn.disabled = true;
   html2pdf().set(opt).from(pdfSrc).save().then(()=>{
     showToast('✓ PDF descargado', 'success');
     pdfSrc.innerHTML='';
+    if(btn) btn.disabled = false;
   }).catch(e=>{
     showToast('Error al generar PDF','error');
     pdfSrc.innerHTML='';
+    if(btn) btn.disabled = false;
     console.error(e);
   });
 }
@@ -2768,10 +2779,7 @@ loadFromStorage();
 renderCatTabs();
 renderDocGrid();
 renderSidebar();
-
-document.addEventListener('DOMContentLoaded', () => {
-  loadStoredBgImage();
-});
+loadStoredBgImage();
 </script>
 
 </body>
