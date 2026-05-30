@@ -579,9 +579,6 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
   position: fixed;
   left: -9999px;
   top: 0;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
 }
 .pdf-doc {
   font-family: Arial, sans-serif;
@@ -2706,6 +2703,9 @@ function generatePDF() {
 
   const pdfSrc = document.getElementById('pdf-source');
   pdfSrc.innerHTML = html;
+  pdfSrc.style.position = 'static';
+  pdfSrc.style.width = '794px';
+  pdfSrc.style.margin = '0 auto';
 
   const fileTitle = titulo.replace(/[^a-z0-9 \-]/gi,'_').substring(0,50);
   const opt = {
