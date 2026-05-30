@@ -2722,10 +2722,16 @@ function generatePDF() {
   html2pdf().set(opt).from(pdfSrc).save().then(()=>{
     showToast('✓ PDF descargado', 'success');
     pdfSrc.innerHTML='';
+    pdfSrc.style.position = '';
+    pdfSrc.style.width = '';
+    pdfSrc.style.margin = '';
     if(btn) btn.disabled = false;
   }).catch(e=>{
     showToast('Error al generar PDF','error');
     pdfSrc.innerHTML='';
+    pdfSrc.style.position = '';
+    pdfSrc.style.width = '';
+    pdfSrc.style.margin = '';
     if(btn) btn.disabled = false;
     console.error(e);
   });
