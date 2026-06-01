@@ -469,6 +469,16 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
   font-size: 14px;
   cursor: grab;
   flex-shrink: 0;
+  touch-action: none;
+}
+.clause-item.drag-over {
+  border-color: var(--red);
+  background: var(--red-light);
+  opacity: 0.85;
+}
+.clause-item.dragging {
+  opacity: 0.4;
+  border-style: dashed;
 }
 .clause-number {
   width: 20px; height: 20px;
@@ -845,9 +855,13 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
   </a>
   <span class="header-subtitle">Sistema de documentos</span>
   <div class="header-actions">
-    <button class="btn" style="font-size:12px;padding:7px 12px;" onclick="exportAllDocs()" title="Exportar todos los borradores">
-      💾 Exportar datos
+    <button class="btn" style="font-size:12px;padding:7px 12px;" onclick="exportAllDocs()" title="Exportar borradores como JSON">
+      💾 Exportar
     </button>
+    <label class="btn" style="font-size:12px;padding:7px 12px;cursor:pointer;" title="Importar borradores desde JSON">
+      📂 Importar
+      <input type="file" accept=".json" hidden onchange="importDocs(event)">
+    </label>
   </div>
 </div>
 
@@ -910,9 +924,9 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
     <div id="view-form" class="hidden">
       <div class="form-page-title" id="form-title"></div>
       <div class="form-page-sub" id="form-sub"></div>
-      <div class="alert-info">
-        Los campos con <strong style="color:var(--red)">*</strong> son obligatorios.
-        El resto los podés dejar en blanco y completar después directamente en el editor de cláusulas.
+      <div class="alert-info" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <span>Los campos con <strong style="color:var(--red)">*</strong> son obligatorios. El resto los podés dejar en blanco y completar después en el editor de cláusulas.</span>
+        <span id="form-progress" style="font-size:12px;font-weight:700;color:var(--blue);white-space:nowrap;"></span>
       </div>
       <div id="form-sections"></div>
       <div class="btn-row">
@@ -976,6 +990,9 @@ textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
       <div class="btn-row">
         <button class="btn" onclick="goBack(2)">← Volver a datos</button>
         <button class="btn" onclick="saveDraft()">💾 Guardar</button>
+        <button class="btn" onclick="copyDocText()" title="Copiar texto completo al portapapeles">📋 Copiar texto</button>
+        <button class="btn" onclick="duplicateDoc()" title="Duplicar este documento">⧉ Duplicar</button>
+        <button class="btn" onclick="exportDocHTML()" title="Exportar como HTML para abrir offline">🌐 Exportar HTML</button>
         <button class="btn primary" onclick="goToPDF()">📄 Generar PDF →</button>
       </div>
     </div>
@@ -2253,7 +2270,7 @@ function renderSidebar() {
           <span class="doc-badge ${badge}">${label}</span>
           ${date ? `<span>${date}</span>` : ''}
         </div>
-        <button class="doc-item-delete" onclick="deleteDoc(event,'${key}')" title="Eliminar">✕</button>
+        <button class="doc-item-delete" onclick="deleteDoc(event,'${key}')" title="Eliminar" aria-label="Eliminar ${doc.title}">✕</button>
       </div>`;
   }).join('');
 }
@@ -2330,11 +2347,13 @@ function goToStart() { startNewDoc(); return false; }
 ════════════════════════════════════════════════════ */
 function renderField(f) {
   const cls = f.full ? 'field full' : 'field';
+  const isReq = f.label && f.label.includes("class='req'");
+  const clearBorder = isReq ? ' oninput="this.style.borderColor=\'\'" onchange="this.style.borderColor=\'\'"' : '';
   let input;
-  if(f.type==='select')   input = `<select id="${f.id}">${(f.options||[]).map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
-  else if(f.type==='textarea') input = `<textarea id="${f.id}" placeholder="${f.placeholder||''}" rows="3"></textarea>`;
-  else if(f.type==='date')     input = `<input type="date" id="${f.id}">`;
-  else                         input = `<input type="text" id="${f.id}" placeholder="${f.placeholder||''}">`;
+  if(f.type==='select')   input = `<select id="${f.id}"${clearBorder}>${(f.options||[]).map(o=>`<option value="${o}">${o}</option>`).join('')}</select>`;
+  else if(f.type==='textarea') input = `<textarea id="${f.id}" placeholder="${f.placeholder||''}" rows="3"${clearBorder}></textarea>`;
+  else if(f.type==='date')     input = `<input type="date" id="${f.id}"${clearBorder}>`;
+  else                         input = `<input type="text" id="${f.id}" placeholder="${f.placeholder||''}"${clearBorder}>`;
   return `<div class="${cls}"><label for="${f.id}">${f.label}</label>${input}</div>`;
 }
 
@@ -2351,6 +2370,51 @@ function renderFormSections(def, existingData) {
       if(el && existingData[f.id] !== undefined) el.value = existingData[f.id];
     }));
   }
+  // Vincular auto-guardado y actualización de progreso a todos los campos
+  cont.querySelectorAll('input,select,textarea').forEach(el => {
+    el.addEventListener('input', () => { updateFormProgress(); autoSaveDraft(); });
+    el.addEventListener('change', () => { updateFormProgress(); autoSaveDraft(); });
+  });
+  updateFormProgress();
+}
+
+function updateFormProgress() {
+  const def = FORMS[selectedDoc];
+  if(!def) return;
+  const allFields = def.sections.flatMap(s => s.fields);
+  const reqFields = allFields.filter(f => f.label && f.label.includes("class='req'"));
+  const filledReq = reqFields.filter(f => { const el = document.getElementById(f.id); return el && el.value.trim(); });
+  const filledAll = allFields.filter(f => { const el = document.getElementById(f.id); return el && el.value.trim(); });
+  const prog = document.getElementById('form-progress');
+  if(prog) {
+    const ok = filledReq.length === reqFields.length;
+    prog.style.color = ok ? 'var(--green)' : 'var(--blue)';
+    prog.textContent = reqFields.length
+      ? `Obligatorios: ${filledReq.length}/${reqFields.length} · Completados: ${filledAll.length}/${allFields.length}`
+      : `Completados: ${filledAll.length}/${allFields.length}`;
+  }
+}
+
+let _autoSaveTimer = null;
+function autoSaveDraft() {
+  if(!selectedDoc || currentStep !== 2) return;
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => {
+    if(!activeDocKey) activeDocKey = genId();
+    const data = collectData();
+    const docInfo = DOCS.find(d=>d.id===selectedDoc)||{};
+    savedDocs[activeDocKey] = {
+      ...(savedDocs[activeDocKey]||{}),
+      docId: selectedDoc,
+      title: docInfo.name + ' — ' + docInfo.desc,
+      data,
+      clauses: savedDocs[activeDocKey]?.clauses || [],
+      status: 'draft',
+      updatedAt: Date.now(),
+    };
+    saveToStorage();
+    renderSidebar();
+  }, 1500);
 }
 
 function collectData() {
@@ -2369,7 +2433,8 @@ function goToForm() {
   const def = FORMS[selectedDoc];
   document.getElementById('form-title').textContent = def.title;
   document.getElementById('form-sub').textContent = 'Completá los datos para generar el documento.';
-  renderFormSections(def, null);
+  const existingData = activeDocKey && savedDocs[activeDocKey] ? savedDocs[activeDocKey].data : null;
+  renderFormSections(def, existingData);
   setStep(2);
 }
 
@@ -2439,6 +2504,28 @@ const DEFAULT_BG = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAA0JC
 let bgImageBase64 = localStorage.getItem('remax_bg_image') || DEFAULT_BG;
 
 function goToEditor() {
+  // Validar campos obligatorios (label con class='req')
+  const def = FORMS[selectedDoc];
+  if(def) {
+    const missingIds = [];
+    def.sections.forEach(sec => sec.fields.forEach(f => {
+      if(f.label && f.label.includes("class='req'")) {
+        const el = document.getElementById(f.id);
+        if(el) {
+          const empty = !el.value.trim();
+          el.style.borderColor = empty ? 'var(--red)' : '';
+          if(empty) missingIds.push(el);
+        }
+      }
+    }));
+    if(missingIds.length) {
+      missingIds[0].scrollIntoView({behavior:'smooth', block:'center'});
+      missingIds[0].focus();
+      showToast(`Completá los ${missingIds.length} campo${missingIds.length>1?'s':''} obligatorio${missingIds.length>1?'s':''} marcado${missingIds.length>1?'s':''}`, 'error');
+      return;
+    }
+  }
+
   const data = collectData();
   if(activeDocKey && savedDocs[activeDocKey]) {
     savedDocs[activeDocKey].data = data;
@@ -2452,18 +2539,58 @@ function goToEditor() {
   updatePreview();
 }
 
+let _dragSrcIdx = null;
+
+function onClauseDragStart(e, i) {
+  _dragSrcIdx = i;
+  e.currentTarget.closest('.clause-item').classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onClauseDragOver(e, i) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.clause-item').forEach(el => el.classList.remove('drag-over'));
+  const target = document.getElementById('cl-'+i);
+  if(target && i !== _dragSrcIdx) target.classList.add('drag-over');
+}
+function onClauseDrop(e, i) {
+  e.preventDefault();
+  if(_dragSrcIdx === null || _dragSrcIdx === i) return;
+  const moved = currentClauses.splice(_dragSrcIdx, 1)[0];
+  currentClauses.splice(i, 0, moved);
+  if(editingClause === _dragSrcIdx) editingClause = i;
+  else if(editingClause !== null) {
+    if(_dragSrcIdx < editingClause && i >= editingClause) editingClause--;
+    else if(_dragSrcIdx > editingClause && i <= editingClause) editingClause++;
+  }
+  _dragSrcIdx = null;
+  renderClauseList();
+  updatePreview();
+}
+function onClauseDragEnd() {
+  _dragSrcIdx = null;
+  document.querySelectorAll('.clause-item').forEach(el => {
+    el.classList.remove('dragging','drag-over');
+  });
+}
+
 function renderClauseList() {
   const list = document.getElementById('clause-list');
   list.innerHTML = currentClauses.map((cl,i) => `
-    <div class="clause-item${editingClause===i?' editing':''}" id="cl-${i}">
+    <div class="clause-item${editingClause===i?' editing':''}" id="cl-${i}"
+         draggable="true"
+         ondragstart="onClauseDragStart(event,${i})"
+         ondragover="onClauseDragOver(event,${i})"
+         ondrop="onClauseDrop(event,${i})"
+         ondragend="onClauseDragEnd()">
       <div class="clause-item-header" onclick="toggleClause(${i})">
-        <span class="clause-drag-handle">⠿</span>
+        <span class="clause-drag-handle" title="Arrastrar para reordenar">⠿</span>
         <span class="clause-number">${i+1}</span>
         <span class="clause-name">${cl.name}</span>
         <div class="clause-actions">
-          <button class="clause-btn" onclick="moveClause(event,${i},-1)" title="Subir">↑</button>
-          <button class="clause-btn" onclick="moveClause(event,${i},1)"  title="Bajar">↓</button>
-          <button class="clause-btn danger" onclick="removeClause(event,${i})" title="Eliminar">✕</button>
+          <button class="clause-btn" onclick="moveClause(event,${i},-1)" title="Subir" aria-label="Subir cláusula ${i+1}">↑</button>
+          <button class="clause-btn" onclick="moveClause(event,${i},1)"  title="Bajar" aria-label="Bajar cláusula ${i+1}">↓</button>
+          <button class="clause-btn danger" onclick="removeClause(event,${i})" title="Eliminar" aria-label="Eliminar cláusula ${cl.name}">✕</button>
         </div>
       </div>
       <div class="clause-body">
@@ -2489,10 +2616,16 @@ function toggleClause(i) {
   }
 }
 
+let _previewTimer = null;
+function updatePreviewDebounced() {
+  clearTimeout(_previewTimer);
+  _previewTimer = setTimeout(updatePreview, 280);
+}
+
 function syncClause(i) {
   const ta = document.getElementById('ct-'+i);
   if(ta) currentClauses[i].text = ta.value;
-  updatePreview();
+  updatePreviewDebounced();
 }
 
 function syncClauseName(i) {
@@ -2503,6 +2636,7 @@ function syncClauseName(i) {
     if(nameEl) nameEl.textContent = inp.value;
     const numEl  = document.querySelector('#cl-'+i+' .clause-number');
     // keep number display
+    updatePreviewDebounced();
   }
 }
 
@@ -2568,6 +2702,18 @@ function loadStoredBgImage() {
 function handleBgImageUpload(event) {
   const file = event.target.files[0];
   if(!file) return;
+
+  const MAX_MB = 3;
+  if(!file.type.startsWith('image/')) {
+    showToast('Solo se aceptan archivos de imagen (JPG, PNG, etc.)', 'error');
+    event.target.value = '';
+    return;
+  }
+  if(file.size > MAX_MB * 1024 * 1024) {
+    showToast(`La imagen no puede superar ${MAX_MB} MB`, 'error');
+    event.target.value = '';
+    return;
+  }
 
   const reader = new FileReader();
 
@@ -2741,21 +2887,31 @@ function generatePDF() {
 
   showToast('⏳ Generando PDF...');
   const btn = document.querySelector('#pdf-output .btn.primary');
-  if(btn) btn.disabled = true;
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ Generando PDF...'; }
+
+  // Overlay de carga
+  const overlay = document.createElement('div');
+  overlay.id = 'pdf-loading-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;';
+  overlay.innerHTML = '<div class="spinner" style="width:48px;height:48px;border-width:4px;"></div><div style="color:#fff;font-size:15px;font-weight:600;">Generando PDF, por favor esperá...</div>';
+  document.body.appendChild(overlay);
+
+  const cleanup = () => {
+    pdfSrc.innerHTML='';
+    pdfSrc.style.position = '';
+    pdfSrc.style.width = '';
+    pdfSrc.style.margin = '';
+    if(btn) { btn.disabled = false; btn.textContent = '⬇️ Descargar PDF'; }
+    const ol = document.getElementById('pdf-loading-overlay');
+    if(ol) ol.remove();
+  };
+
   html2pdf().set(opt).from(pdfSrc).save().then(()=>{
+    cleanup();
     showToast('✓ PDF descargado', 'success');
-    pdfSrc.innerHTML='';
-    pdfSrc.style.position = '';
-    pdfSrc.style.width = '';
-    pdfSrc.style.margin = '';
-    if(btn) btn.disabled = false;
   }).catch(e=>{
-    showToast('Error al generar PDF','error');
-    pdfSrc.innerHTML='';
-    pdfSrc.style.position = '';
-    pdfSrc.style.width = '';
-    pdfSrc.style.margin = '';
-    if(btn) btn.disabled = false;
+    cleanup();
+    showToast('Error al generar PDF. Intentá nuevamente.','error');
     console.error(e);
   });
 }
@@ -2780,12 +2936,147 @@ function goBack(toStep) {
    EXPORT / IMPORT DE DATOS
 ════════════════════════════════════════════════════ */
 function exportAllDocs() {
+  if(!Object.keys(savedDocs).length) { showToast('No hay documentos guardados para exportar','error'); return; }
   const blob = new Blob([JSON.stringify(savedDocs, null, 2)], {type:'application/json'});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href = url; a.download = 'remax_crea_documentos.json'; a.click();
   URL.revokeObjectURL(url);
-  showToast('✓ Datos exportados');
+  showToast('✓ ' + Object.keys(savedDocs).length + ' documento(s) exportado(s)', 'success');
+}
+
+function importDocs(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  if(!file.name.endsWith('.json')) { showToast('Solo se aceptan archivos .json','error'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if(typeof imported !== 'object' || Array.isArray(imported)) throw new Error('Formato inválido');
+      const count = Object.keys(imported).length;
+      if(!count) { showToast('El archivo no contiene documentos','error'); return; }
+      showModal(
+        'Importar ' + count + ' documento(s)',
+        '¿Querés agregar los documentos importados a los existentes, o reemplazar todo?',
+        () => {
+          Object.assign(savedDocs, imported);
+          saveToStorage();
+          renderSidebar();
+          showToast('✓ ' + count + ' documento(s) importado(s)', 'success');
+        }
+      );
+      // Customize confirm button text
+      document.getElementById('modal-confirm').textContent = 'Agregar/Reemplazar';
+    } catch(err) {
+      showToast('Error al leer el archivo: ' + err.message, 'error');
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ════════════════════════════════════════════════════
+   DUPLICAR DOCUMENTO
+════════════════════════════════════════════════════ */
+function duplicateDoc() {
+  if(!activeDocKey || !savedDocs[activeDocKey]) { showToast('Guardá el documento primero','error'); return; }
+  const src = savedDocs[activeDocKey];
+  const newKey = genId();
+  savedDocs[newKey] = {
+    ...src,
+    title: src.title + ' (copia)',
+    status: 'draft',
+    updatedAt: Date.now(),
+    clauses: src.clauses ? src.clauses.map(c => ({...c})) : [],
+    data: src.data ? {...src.data} : {},
+  };
+  saveToStorage();
+  renderSidebar();
+  showToast('✓ Documento duplicado', 'success');
+}
+
+/* ════════════════════════════════════════════════════
+   COPIAR TEXTO AL PORTAPAPELES
+════════════════════════════════════════════════════ */
+function copyDocText() {
+  const clauses = getClausesFromEditor();
+  const docInfo = DOCS.find(d=>d.id===selectedDoc)||{};
+  const titulo  = docInfo.name ? docInfo.name + ' — ' + docInfo.desc : 'Documento';
+  const text = titulo.toUpperCase() + '\n\n' +
+    clauses.map(c => c.name.toUpperCase() + '\n' + c.text).join('\n\n---\n\n');
+  if(navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('✓ Texto copiado al portapapeles', 'success'))
+      .catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast('✓ Texto copiado al portapapeles', 'success'); }
+  catch(e) { showToast('No se pudo copiar al portapapeles','error'); }
+  ta.remove();
+}
+
+/* ════════════════════════════════════════════════════
+   EXPORTAR COMO HTML OFFLINE
+════════════════════════════════════════════════════ */
+function exportDocHTML() {
+  const clauses = getClausesFromEditor();
+  const docInfo = DOCS.find(d=>d.id===selectedDoc)||{};
+  const titulo  = escHtml(docInfo.name ? docInfo.name + ' — ' + docInfo.desc : 'Documento');
+  const clausesHtml = clauses.map(c => `
+    <div style="margin-bottom:24px;">
+      <div style="font-weight:700;font-size:11pt;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px;">${escHtml(c.name)}</div>
+      <div style="font-size:10.5pt;line-height:1.7;white-space:pre-wrap;text-align:justify;">${escHtml(c.text)}</div>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${titulo} — RE/MAX CREA</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11pt; color: #000; max-width: 800px; margin: 40px auto; padding: 0 24px; }
+  .header { text-align:center; border-bottom:2px solid #CC0000; padding-bottom:16px; margin-bottom:28px; }
+  .logo { font-size:20pt; font-weight:900; color:#CC0000; }
+  .sub  { font-size:9pt; color:#666; margin-top:4px; }
+  .title { font-size:14pt; font-weight:700; margin-top:14px; text-transform:uppercase; }
+  .signatures { display:grid; grid-template-columns:1fr 1fr; gap:48px; margin-top:60px; }
+  .sig-block { text-align:center; }
+  .sig-line  { border-top:1px solid #000; padding-top:6px; margin-top:48px; font-size:10pt; color:#333; }
+  @media print { body { margin:20mm; } }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">RE/MAX CREA</div>
+    <div class="sub">Sistema de generación documental</div>
+    <div class="title">${titulo}</div>
+  </div>
+  ${clausesHtml}
+  <div class="signatures">
+    <div class="sig-block"><div class="sig-line">Firma y aclaración</div></div>
+    <div class="sig-block"><div class="sig-line">Corredor inmobiliario</div></div>
+  </div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const fname = (docInfo.name||'documento').replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  a.href = url; a.download = fname + '.html'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ HTML exportado', 'success');
 }
 
 /* ════════════════════════════════════════════════════
@@ -2799,7 +3090,34 @@ function showModal(title, body, cb) {
   _modalCb = cb;
   document.getElementById('modal-confirm').onclick = ()=>{ closeModal(); if(_modalCb) _modalCb(); };
 }
-function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); _modalCb=null; }
+function closeModal() {
+  document.getElementById('modal-overlay').classList.add('hidden');
+  document.getElementById('modal-confirm').textContent = 'Confirmar';
+  _modalCb=null;
+}
+
+// Atajos de teclado globales
+document.addEventListener('keydown', e => {
+  // Escape: cerrar modal
+  if(e.key === 'Escape') {
+    const overlay = document.getElementById('modal-overlay');
+    if(overlay && !overlay.classList.contains('hidden')) { closeModal(); return; }
+  }
+  // Ctrl+S / Cmd+S: guardar borrador
+  if((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    if(currentStep >= 2) { saveDraft(); showToast('💾 Guardado', 'success'); }
+    return;
+  }
+  // Ctrl+Enter: avanzar al siguiente paso
+  if((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    if(currentStep === 1 && selectedDoc) goToForm();
+    else if(currentStep === 2) goToEditor();
+    else if(currentStep === 3) goToPDF();
+    return;
+  }
+});
 
 /* ════════════════════════════════════════════════════
    TOAST
